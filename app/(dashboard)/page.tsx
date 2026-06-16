@@ -4,7 +4,6 @@ import {
   Trophy, 
   Award, 
   Users, 
-  CreditCard, 
   Clock, 
   ChevronRight,
   TrendingUp,
@@ -34,7 +33,7 @@ export default async function DashboardPage() {
   if (profile.partner_id) {
     const { data: partner } = await supabase
       .from("profiles")
-      .select("username, email, payment_status")
+      .select("username")
       .eq("id", profile.partner_id)
       .single();
     partnerProfile = partner;
@@ -191,17 +190,10 @@ export default async function DashboardPage() {
                     <div>
                       <span className="text-xs text-gray-400 block">Compañero</span>
                       <strong className="text-white">@{partnerProfile?.username}</strong>
-                      <span className="text-xs text-gray-400 block">{partnerProfile?.email}</span>
                     </div>
-                    {partnerProfile?.payment_status === "approved" ? (
-                      <span className="text-xs bg-[#00B894]/10 text-[#00B894] py-1 px-2 rounded-full font-medium">
-                        Pago Confirmado
-                      </span>
-                    ) : (
-                      <span className="text-xs bg-yellow-950/30 text-yellow-300 py-1 px-2 rounded-full font-medium">
-                        Pago Pendiente
-                      </span>
-                    )}
+                    <span className="text-xs bg-[#00B894]/10 text-[#00B894] py-1 px-2 rounded-full font-medium">
+                      Miembro Activo
+                    </span>
                   </div>
                 </div>
               </div>

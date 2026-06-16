@@ -228,26 +228,6 @@ export async function uploadModelCard(fileUrl: string, description: string) {
   return { success: true };
 }
 
-// 6. Submit Payment Reference (User Side)
-export async function submitPayment(reference: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("No autenticado");
-
-  const { error } = await supabase
-    .from("profiles")
-    .update({
-      payment_reference: reference,
-      payment_status: "submitted",
-    })
-    .eq("id", user.id);
-
-  if (error) throw error;
-
-  revalidatePath("/pago");
-  revalidatePath("/dashboard");
-  return { success: true };
-}
 
 // ==========================================
 // ADMIN ACTIONS
@@ -349,29 +329,6 @@ export async function deleteTeam(teamId: string) {
   return { success: true };
 }
 
-// 8. Manage User Payment Status (Admin)
-export async function manageUserPayment(
-  userId: string,
-  status: "pending" | "submitted" | "approved" | "rejected"
-) {
-  const supabase = await createClient();
-  const isAdmin = await checkAdmin(supabase);
-  if (!isAdmin) throw new Error("Acceso denegado: se requieren privilegios de administrador");
-
-  const { error } = await supabase
-    .from("profiles")
-    .update({
-      payment_status: status,
-      is_paid: status === "approved",
-    })
-    .eq("id", userId);
-
-  if (error) throw error;
-
-  revalidatePath("/admin/users");
-  revalidatePath("/leaderboard");
-  return { success: true };
-}
 
 // 9. Save Teams Bulk (Scraper / Seed)
 export async function saveTeamsBulk(teams: any[]) {

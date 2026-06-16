@@ -51,7 +51,7 @@ export default async function AdminLayout({
           href="/dashboard/admin/users"
           className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg hover:bg-[#1A2B3C]/40 text-gray-300 hover:text-white"
         >
-          <Users className="h-4 w-4" /> Usuarios y Pagos
+          <Users className="h-4 w-4" /> Participantes
         </Link>
         <Link
           href="/dashboard/admin/matches"

@@ -12,8 +12,7 @@ import {
   User as UserIcon,
   Users as UsersIcon,
   Check,
-  X,
-  CreditCard
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { acceptDuplaInvitation, rejectDuplaInvitation } from "@/lib/actions";
@@ -228,23 +227,7 @@ export default async function DashboardLayout({
           </div>
         )}
 
-        {/* Payment Warning Banner */}
-        {!profile.is_paid && (
-          <div className="bg-yellow-950/20 border-b border-yellow-600/30 px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 text-center sm:text-left text-sm text-yellow-200">
-              <CreditCard className="h-5 w-5 text-[#D4AF37] shrink-0" />
-              <span>
-                <strong>Bolsa Premium: $3.000.000 al ganador.</strong> Tu participación está pendiente de pago. Registra tu referencia para activar tu cuenta.
-              </span>
-            </div>
-            <Link
-              href="/dashboard/pago"
-              className="text-xs bg-[#D4AF37] text-black font-bold px-3 py-1.5 rounded hover:bg-[#C29E30] transition-colors shrink-0"
-            >
-              Registrar Pago
-            </Link>
-          </div>
-        )}
+
 
         {/* Main scrollable page content */}
         <main className="flex-1 overflow-y-auto p-6 md:p-10">

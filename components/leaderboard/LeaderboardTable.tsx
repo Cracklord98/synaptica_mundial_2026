@@ -5,10 +5,7 @@ import {
   Trophy, 
   Search, 
   User, 
-  Users, 
-  CheckCircle2, 
-  XCircle,
-  HelpCircle
+  Users
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,8 +14,6 @@ interface LeaderboardEntry {
   user_id: string;
   username: string;
   team_name: string | null;
-  is_paid: boolean;
-  payment_status: string;
   total_points: number;
   exact_count: number;
   r32_points: number;
@@ -65,7 +60,6 @@ export default function LeaderboardTable({ data, currentUserId }: LeaderboardTab
               <tr>
                 <th className="py-4 px-6 text-center w-16">Pos</th>
                 <th className="py-4 px-6">Participante / Equipo</th>
-                <th className="py-4 px-6 text-center">Pago</th>
                 <th className="py-4 px-6 text-center">R32</th>
                 <th className="py-4 px-6 text-center">R16</th>
                 <th className="py-4 px-6 text-center">4tos</th>
@@ -78,7 +72,7 @@ export default function LeaderboardTable({ data, currentUserId }: LeaderboardTab
             <tbody className="divide-y divide-[#1A2B3C]/50">
               {filteredData.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-8 text-center text-gray-500">
+                  <td colSpan={9} className="py-8 text-center text-gray-500">
                     No se encontraron participantes.
                   </td>
                 </tr>
@@ -134,22 +128,6 @@ export default function LeaderboardTable({ data, currentUserId }: LeaderboardTab
                         </div>
                       </td>
 
-                      {/* Payment Badge */}
-                      <td className="py-4 px-6 text-center">
-                        {entry.is_paid ? (
-                          <span title="Pago Confirmado" className="inline-block">
-                            <CheckCircle2 className="h-4.5 w-4.5 text-[#00B894] mx-auto" />
-                          </span>
-                        ) : entry.payment_status === "submitted" ? (
-                          <span title="Verificación Pendiente" className="inline-block">
-                            <HelpCircle className="h-4.5 w-4.5 text-yellow-500 mx-auto" />
-                          </span>
-                        ) : (
-                          <span title="Pendiente de Pago" className="inline-block">
-                            <XCircle className="h-4.5 w-4.5 text-red-500 mx-auto" />
-                          </span>
-                        )}
-                      </td>
 
                       {/* Points breakdown by round */}
                       <td className="py-4 px-6 text-center text-gray-400">{entry.r32_points}</td>
