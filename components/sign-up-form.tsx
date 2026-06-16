@@ -209,10 +209,15 @@ export function SignUpForm({
                 {isLoading ? "Creando Cuenta..." : "Registrarse"}
               </Button>
             </div>
-            <div className="mt-6 text-center text-sm text-gray-400">
-              ¿Ya tienes una cuenta?{" "}
-              <Link href="/auth/login" className="text-[#D4AF37] hover:underline underline-offset-4 font-semibold">
-                Inicia Sesión
+            <div className="mt-6 flex flex-col gap-3 text-center text-sm text-gray-400">
+              <div>
+                ¿Ya tienes una cuenta?{" "}
+                <Link href="/auth/login" className="text-[#D4AF37] hover:underline underline-offset-4 font-semibold">
+                  Inicia Sesión
+                </Link>
+              </div>
+              <Link href="/" className="text-gray-500 hover:text-white transition-colors">
+                ← Volver al inicio
               </Link>
             </div>
           </form>

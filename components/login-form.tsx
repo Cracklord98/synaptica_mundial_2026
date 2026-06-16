@@ -98,13 +98,18 @@ export function LoginForm({
                 {isLoading ? "Ingresando..." : "Ingresar"}
               </Button>
             </div>
-            <div className="mt-6 text-center text-sm text-gray-400">
-              ¿No tienes una cuenta?{" "}
-              <Link
-                href="/auth/sign-up"
-                className="text-[#D4AF37] hover:underline underline-offset-4 font-semibold"
-              >
-                Regístrate
+            <div className="mt-6 flex flex-col gap-3 text-center text-sm text-gray-400">
+              <div>
+                ¿No tienes una cuenta?{" "}
+                <Link
+                  href="/auth/sign-up"
+                  className="text-[#D4AF37] hover:underline underline-offset-4 font-semibold"
+                >
+                  Regístrate
+                </Link>
+              </div>
+              <Link href="/" className="text-gray-500 hover:text-white transition-colors">
+                ← Volver al inicio
               </Link>
             </div>
           </form>
