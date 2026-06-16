@@ -280,8 +280,8 @@ export default function PredictionForm({
                       <div className="flex flex-col md:flex-row items-center gap-3 w-1/3 text-right justify-end">
                         <span className="font-bold text-base md:text-lg hidden md:inline">{match.team1?.name || "Clasificado"}</span>
                         <span className="font-bold text-sm md:hidden block truncate max-w-[80px]">{match.team1?.name || "Clasificado"}</span>
-                        {match.team1?.flag_url ? (
-                          <div className="relative w-10 h-7 shrink-0 border border-gray-800 roundedoverflow-hidden">
+                        {match.team1?.flag_url && !match.team1.name.includes("Clasificado") ? (
+                          <div className="relative w-10 h-7 shrink-0 border border-gray-800 rounded overflow-hidden">
                             <img
                               src={match.team1.flag_url}
                               alt={match.team1.name}
@@ -289,7 +289,9 @@ export default function PredictionForm({
                             />
                           </div>
                         ) : (
-                          <div className="w-10 h-7 bg-[#1A2B3C] shrink-0 border border-gray-800 rounded" />
+                          <div className="flex items-center justify-center w-10 h-7 bg-[#1A2B3C] shrink-0 border border-gray-700 rounded text-gray-500 font-bold text-xs">
+                            ?
+                          </div>
                         )}
                       </div>
 
@@ -320,7 +322,7 @@ export default function PredictionForm({
                       <div className="flex flex-col md:flex-row-reverse items-center gap-3 w-1/3 text-left justify-end md:justify-start">
                         <span className="font-bold text-base md:text-lg hidden md:inline">{match.team2?.name || "Clasificado"}</span>
                         <span className="font-bold text-sm md:hidden block truncate max-w-[80px]">{match.team2?.name || "Clasificado"}</span>
-                        {match.team2?.flag_url ? (
+                        {match.team2?.flag_url && !match.team2.name.includes("Clasificado") ? (
                           <div className="relative w-10 h-7 shrink-0 border border-gray-800 rounded overflow-hidden">
                             <img
                               src={match.team2.flag_url}
@@ -329,7 +331,9 @@ export default function PredictionForm({
                             />
                           </div>
                         ) : (
-                          <div className="w-10 h-7 bg-[#1A2B3C] shrink-0 border border-gray-800 rounded" />
+                          <div className="flex items-center justify-center w-10 h-7 bg-[#1A2B3C] shrink-0 border border-gray-700 rounded text-gray-500 font-bold text-xs">
+                            ?
+                          </div>
                         )}
                       </div>
                     </div>
