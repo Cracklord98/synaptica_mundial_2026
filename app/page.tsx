@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Trophy, Award, Users, FileText, ArrowRight, ShieldCheck, ChevronRight } from "lucide-react";
 import { motion, Variants } from "framer-motion";
+import Footer from "@/components/ui/Footer";
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 30 },
@@ -160,15 +161,7 @@ export default function Home() {
       </motion.section>
 
       {/* Footer */}
-      <footer className="w-full border-t border-[#1A2B3C] bg-[#0A0A0A] py-12 mt-12 text-center text-xs text-gray-500">
-        <div className="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p>&copy; 2026 La Polla Mundial 2026 | Synaptica. Todos los derechos reservados.</p>
-          <div className="flex gap-4">
-            <Link href="/auth/login" className="hover:text-white transition-colors">Iniciar Sesión</Link>
-            <Link href="/auth/sign-up" className="hover:text-white transition-colors">Registrarse</Link>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }

@@ -232,8 +232,13 @@ export default async function DashboardLayout({
 
 
         {/* Main scrollable page content */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-10">
-          {children}
+        <main className="flex-1 overflow-y-auto p-6 md:p-10 flex flex-col">
+          <div className="flex-1">
+            {children}
+          </div>
+          <div className="mt-12 pt-6 border-t border-[#1A2B3C] text-center text-xs text-gray-500">
+            &copy; {new Date().getFullYear()} Synaptica S.A.S. Todos los derechos reservados. Uso corporativo interno.
+          </div>
         </main>
       </div>
     </div>

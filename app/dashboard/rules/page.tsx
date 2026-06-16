@@ -199,7 +199,13 @@ export default function RulesPage() {
               <div className="flex gap-3 items-start">
                 <AlertTriangle className="h-5 w-5 text-[#D4AF37] shrink-0 mt-0.5" />
                 <p className="text-sm text-gray-300">
-                  <strong className="text-white">Inapelable:</strong> Las predicciones se congelan al cierre. Las decisiones del jurado en la Pista Analítica son inapelables.
+                  <strong className="text-white">Cierres por Partido:</strong> Puedes modificar tu predicción para cualquier partido hasta <strong>exactamente 1 hora antes</strong> de que comience. ¡El sistema bloqueará el partido automáticamente!
+                </p>
+              </div>
+              <div className="flex gap-3 items-start">
+                <AlertTriangle className="h-5 w-5 text-[#D4AF37] shrink-0 mt-0.5" />
+                <p className="text-sm text-gray-300">
+                  <strong className="text-white">Inapelable:</strong> Las decisiones del jurado en la Pista Analítica son inapelables.
                 </p>
               </div>
             </CardContent>
