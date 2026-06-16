@@ -10,7 +10,7 @@ const defaultUrl = process.env.VERCEL_URL
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
   title: "La Polla Mundial 2026 | Synaptica",
-  description: "Plataforma predictiva oficial de Synaptica para la Copa Mundial de la FIFA 2026. Predice resultados, compite en duplas y gana premios premium.",
+  description: "Plataforma predictiva oficial de Synaptica para la Copa Mundial de la FIFA 2026. Predice resultados, compite en duplas y gana increíbles premios sorpresa.",
 };
 
 const geistSans = Geist({

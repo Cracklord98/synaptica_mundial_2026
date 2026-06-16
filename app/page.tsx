@@ -40,7 +40,7 @@ export default function Home() {
           <span className="text-[#D4AF37]">Mundial 2026</span>
         </h1>
         <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
-          Predice marcadores de eliminación directa, compite solo o en dupla, sube tu Ficha Metodológica y gana parte de la espectacular bolsa de premios.
+          Predice marcadores de eliminación directa, compite solo o en dupla, sube tu Ficha Metodológica y llévate increíbles premios sorpresa.
         </p>
 
         <div className="pt-6 flex flex-col sm:flex-row justify-center items-center gap-4">
@@ -64,31 +64,33 @@ export default function Home() {
       <section className="w-full max-w-5xl px-6 pb-12">
         <div className="premium-card p-8 rounded-2xl border border-[#1A2B3C] bg-gradient-to-r from-[#1A2B3C]/20 to-[#0A0A0A] text-center space-y-6">
           <div>
-            <span className="text-[#00B894] font-bold text-xs uppercase tracking-widest block">Bolsa de Premios</span>
-            <h2 className="text-3xl font-black text-white mt-1">Gran Bolsa de Premios Premium</h2>
-            <p className="text-xs text-gray-400 mt-1">Con base en un mínimo de 100 inscripciones</p>
+            <span className="text-[#00B894] font-bold text-xs uppercase tracking-widest block">Premios</span>
+            <h2 className="text-3xl font-black text-white mt-1">🎁 ¡Habrá Premios Sorpresa!</h2>
+            <p className="text-sm text-gray-400 mt-2 max-w-xl mx-auto">
+              Los mejores analistas serán reconocidos con premios especiales. ¡Mantente atento y da lo mejor de ti!
+            </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4">
-            <div className="bg-[#0A0A0A] p-5 rounded-xl border border-[#1A2B3C]">
+            <div className="bg-[#0A0A0A] p-5 rounded-xl border border-[#D4AF37]/30">
               <Trophy className="h-8 w-8 text-[#D4AF37] mx-auto mb-2" />
               <span className="text-xs text-gray-400 block font-semibold">1er Puesto</span>
-              <strong className="text-2xl font-black text-[#D4AF37]">$3.000.000 COP</strong>
+              <strong className="text-xl font-black text-[#D4AF37]">🎁 Premio Sorpresa</strong>
             </div>
             <div className="bg-[#0A0A0A] p-5 rounded-xl border border-[#1A2B3C]">
               <Award className="h-8 w-8 text-gray-300 mx-auto mb-2" />
               <span className="text-xs text-gray-400 block font-semibold">2do Puesto</span>
-              <strong className="text-2xl font-black text-white">$1.000.000 COP</strong>
+              <strong className="text-xl font-black text-white">🎁 Premio Sorpresa</strong>
             </div>
             <div className="bg-[#0A0A0A] p-5 rounded-xl border border-[#1A2B3C]">
               <Award className="h-8 w-8 text-amber-600 mx-auto mb-2" />
               <span className="text-xs text-gray-400 block font-semibold">3er Puesto</span>
-              <strong className="text-2xl font-black text-amber-600">$500.000 COP</strong>
+              <strong className="text-xl font-black text-amber-600">🎁 Premio Sorpresa</strong>
             </div>
           </div>
 
           <p className="text-xs text-gray-500">
-            * 3 Premios Sorpresa de <strong>$150.000 COP</strong> serán sorteados entre los participantes activos.
+            * El jurado también evaluará las mejores Fichas Metodológicas (Model Cards). ¡Otra oportunidad de ganar!
           </p>
         </div>
       </section>
