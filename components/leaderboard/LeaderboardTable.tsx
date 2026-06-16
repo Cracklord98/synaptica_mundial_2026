@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { 
   Trophy, 
   Search, 
@@ -69,7 +70,18 @@ export default function LeaderboardTable({ data, currentUserId }: LeaderboardTab
                 <th className="py-4 px-6 text-center font-bold text-[#D4AF37]">Puntos</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1A2B3C]/50">
+            <motion.tbody 
+              className="divide-y divide-[#1A2B3C]/50"
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: { opacity: 0 },
+                visible: {
+                  opacity: 1,
+                  transition: { staggerChildren: 0.05 }
+                }
+              }}
+            >
               {filteredData.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-8 text-center text-gray-500">
@@ -82,8 +94,13 @@ export default function LeaderboardTable({ data, currentUserId }: LeaderboardTab
                   const pos = index + 1;
 
                   return (
-                    <tr 
+                    <motion.tr 
                       key={entry.user_id} 
+                      variants={{
+                        hidden: { opacity: 0, x: -20 },
+                        visible: { opacity: 1, x: 0 }
+                      }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
                       className={`hover:bg-[#1A2B3C]/20 transition-colors ${
                         isCurrentUser ? "bg-[#D4AF37]/5 font-semibold border-l-2 border-[#D4AF37]" : ""
                       }`}
@@ -145,11 +162,11 @@ export default function LeaderboardTable({ data, currentUserId }: LeaderboardTab
                       <td className="py-4 px-6 text-center font-bold text-base text-white">
                         {entry.total_points}
                       </td>
-                    </tr>
+                    </motion.tr>
                   );
                 })
               )}
-            </tbody>
+            </motion.tbody>
           </table>
         </CardContent>
       </Card>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { 
   Search, 
   ShieldCheck, 
@@ -66,7 +67,18 @@ export default function AdminUsersTable({ profiles }: AdminUsersTableProps) {
                 <th className="py-4 px-6 text-center">Registro</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1A2B3C]/40">
+            <motion.tbody 
+              className="divide-y divide-[#1A2B3C]/40"
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: { opacity: 0 },
+                visible: {
+                  opacity: 1,
+                  transition: { staggerChildren: 0.05 }
+                }
+              }}
+            >
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="py-8 text-center text-gray-500">
@@ -75,7 +87,15 @@ export default function AdminUsersTable({ profiles }: AdminUsersTableProps) {
                 </tr>
               ) : (
                 filtered.map((profile) => (
-                  <tr key={profile.id} className="hover:bg-[#1A2B3C]/10 transition-colors">
+                  <motion.tr 
+                    key={profile.id} 
+                    variants={{
+                      hidden: { opacity: 0, x: -20 },
+                      visible: { opacity: 1, x: 0 }
+                    }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                    className="hover:bg-[#1A2B3C]/10 transition-colors"
+                  >
                     {/* User */}
                     <td className="py-4 px-6">
                       <p className="font-bold text-white flex items-center gap-1.5">
@@ -122,10 +142,10 @@ export default function AdminUsersTable({ profiles }: AdminUsersTableProps) {
                         year: "numeric",
                       })}
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))
               )}
-            </tbody>
+            </motion.tbody>
           </table>
         </CardContent>
       </Card>

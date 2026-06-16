@@ -13,9 +13,6 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   partner_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   partner_email TEXT,
   is_admin BOOLEAN DEFAULT FALSE,
-  is_paid BOOLEAN DEFAULT FALSE,
-  payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('pending', 'submitted', 'approved', 'rejected')),
-  payment_reference TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
