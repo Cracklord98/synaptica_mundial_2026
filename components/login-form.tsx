@@ -38,10 +38,9 @@ export function LoginForm({
         password,
       });
       if (error) throw error;
-      // Update this route to redirect to an authenticated route. The user already has an active session.
-      router.push("/protected");
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+      router.push("/dashboard");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Error de credenciales o de red");
     } finally {
       setIsLoading(false);
     }
@@ -49,57 +48,63 @@ export function LoginForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>
-            Enter your email below to login to your account
+      <Card className="border-[#1A2B3C] bg-[#0A0A0A] text-white shadow-2xl">
+        <CardHeader className="text-center">
+          <CardTitle className="text-3xl font-bold text-[#D4AF37]">Iniciar Sesión</CardTitle>
+          <CardDescription className="text-gray-400">
+            Ingresa a tu cuenta de La Polla Mundial 2026
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin}>
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-5">
               <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-gray-300">Correo Electrónico</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="tu@correo.com"
                   required
+                  className="border-[#1A2B3C] bg-[#121212] text-white focus:border-[#D4AF37] focus:ring-0"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
               <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-gray-300">Contraseña</Label>
                   <Link
                     href="/auth/forgot-password"
-                    className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
+                    className="text-xs text-[#D4AF37] hover:underline"
                   >
-                    Forgot your password?
+                    ¿Olvidaste tu contraseña?
                   </Link>
                 </div>
                 <Input
                   id="password"
                   type="password"
                   required
+                  className="border-[#1A2B3C] bg-[#121212] text-white focus:border-[#D4AF37] focus:ring-0"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Logging in..." : "Login"}
+              {error && <p className="text-sm text-red-500 bg-red-950/30 p-3 rounded-lg border border-red-500/50">{error}</p>}
+              <Button 
+                type="submit" 
+                className="w-full bg-[#D4AF37] text-black hover:bg-[#C29E30] transition-all py-6 text-lg font-bold"
+                disabled={isLoading}
+              >
+                {isLoading ? "Ingresando..." : "Ingresar"}
               </Button>
             </div>
-            <div className="mt-4 text-center text-sm">
-              Don&apos;t have an account?{" "}
+            <div className="mt-6 text-center text-sm text-gray-400">
+              ¿No tienes una cuenta?{" "}
               <Link
                 href="/auth/sign-up"
-                className="underline underline-offset-4"
+                className="text-[#D4AF37] hover:underline underline-offset-4 font-semibold"
               >
-                Sign up
+                Regístrate
               </Link>
             </div>
           </form>
