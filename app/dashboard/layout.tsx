@@ -12,7 +12,8 @@ import {
   User as UserIcon,
   Users as UsersIcon,
   Check,
-  X
+  X,
+  BookOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { acceptDuplaInvitation, rejectDuplaInvitation } from "@/lib/actions";
@@ -65,9 +66,10 @@ export default async function DashboardLayout({
   const navItems = [
     { name: "Inicio", href: "/dashboard", icon: Trophy },
     { name: "Pronósticos", href: "/dashboard/predictions/round_32", icon: Calendar },
+    { name: "Ranking", href: "/dashboard/leaderboard", icon: ListOrdered },
     { name: "Bracket", href: "/dashboard/bracket", icon: Layers },
     { name: "Model Card", href: "/dashboard/model-card", icon: Upload },
-    { name: "Leaderboard", href: "/dashboard/leaderboard", icon: ListOrdered },
+    { name: "Reglas", href: "/dashboard/rules", icon: BookOpen },
   ];
 
   return (

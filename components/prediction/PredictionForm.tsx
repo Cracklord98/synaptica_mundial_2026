@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { submitPrediction, submitBonus } from "@/lib/actions";
+import CountdownTimer from "@/components/ui/CountdownTimer";
 
 interface Team {
   id: string;
@@ -222,6 +223,14 @@ export default function PredictionForm({
           ))}
         </div>
       </div>
+
+      {/* Countdown Timer for Round of 32 Teams Definition */}
+      {round === "round_32" && (
+        <CountdownTimer 
+          targetDate="2026-06-28T00:00:00Z" 
+          title="Definición de Cruces en" 
+        />
+      )}
 
       {/* Matches predictions list */}
       <div className="space-y-6">
