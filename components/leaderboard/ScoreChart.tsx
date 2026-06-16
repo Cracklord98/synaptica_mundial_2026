@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { 
   LineChart, 
   Line, 
@@ -40,8 +41,28 @@ const LINE_COLORS = [
 ];
 
 export default function ScoreChart({ standings, currentUserId }: ScoreChartProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // If there are no participants, show placeholder
   if (standings.length === 0) return null;
+
+  if (!mounted) {
+    return (
+      <Card className="border-[#1A2B3C] bg-[#121212] premium-card">
+        <CardHeader className="flex flex-row items-center gap-2 pb-2">
+          <TrendingUp className="h-5 w-5 text-[#D4AF37]" />
+          <CardTitle className="text-lg text-white font-bold">Evolución de Puntajes</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <div className="w-full h-80 bg-zinc-950/50 animate-pulse rounded-lg border border-[#1A2B3C]" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   // 1. Identify which users to plot: Top 5 + current user (if not already in top 5)
   const topUsers = standings.slice(0, 5);
