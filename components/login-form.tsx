@@ -38,7 +38,9 @@ export function LoginForm({
         password,
       });
       if (error) throw error;
-      router.push("/dashboard");
+      
+      // Force a full reload to dashboard to ensure cookies sync with Next.js middleware
+      window.location.href = "/dashboard";
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error de credenciales o de red");
     } finally {
