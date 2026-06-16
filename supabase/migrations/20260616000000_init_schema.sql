@@ -326,8 +326,6 @@ SELECT
   p.id AS user_id,
   p.username,
   p.team_name,
-  p.is_paid,
-  p.payment_status,
   COALESCE(SUM(sh.points), 0)::integer AS total_points,
   COALESCE(SUM(CASE WHEN sh.is_exact THEN 1 ELSE 0 END), 0)::integer AS exact_count,
   COALESCE(SUM(CASE WHEN sh.round = 'round_32' THEN sh.points ELSE 0 END), 0)::integer AS r32_points,
@@ -337,7 +335,7 @@ SELECT
   COALESCE(SUM(CASE WHEN sh.round IN ('final', 'third_place') THEN sh.points ELSE 0 END), 0)::integer AS final_points
 FROM public.profiles p
 LEFT JOIN public.score_history sh ON sh.user_id = p.id
-GROUP BY p.id, p.username, p.team_name, p.is_paid, p.payment_status
+GROUP BY p.id, p.username, p.team_name
 ORDER BY total_points DESC, exact_count DESC;
 
 GRANT SELECT ON public.leaderboard TO authenticated;
