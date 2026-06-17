@@ -51,6 +51,7 @@ interface Prediction {
 interface BracketViewProps {
   matches: Match[];
   initialPredictions: Prediction[];
+  isAdmin?: boolean;
 }
 
 const ROUND_KEYS = ["round_32", "round_16", "quarter", "semi", "final"];
@@ -112,7 +113,7 @@ function RoundConnector({ fromCount }: RoundConnectorProps) {
   );
 }
 
-export default function BracketView({ matches, initialPredictions }: BracketViewProps) {
+export default function BracketView({ matches, initialPredictions, isAdmin = false }: BracketViewProps) {
   const [predictions, setPredictions] = useState<Record<string, Partial<Prediction>>>(() => {
     const map: Record<string, Partial<Prediction>> = {};
     initialPredictions.forEach((pred) => {
@@ -129,6 +130,8 @@ export default function BracketView({ matches, initialPredictions }: BracketView
   const [isSaving, setIsSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"bracket" | "grid">("bracket");
+
+  const isModalMatchLocked = selectedMatch ? (new Date() > new Date(selectedMatch.deadline) || selectedMatch.is_finished || isAdmin) : false;
 
   // Group matches by round
   const r32 = matches.filter((m) => m.round === "round_32");
@@ -195,7 +198,7 @@ export default function BracketView({ matches, initialPredictions }: BracketView
   };  // Render a match card
   const renderMatchCard = (match: Match, mode: "full" | "compact" | "node" = "full") => {
     const pred = predictions[match.id];
-    const isLocked = new Date() > new Date(match.deadline) || match.is_finished;
+    const isLocked = new Date() > new Date(match.deadline) || match.is_finished || isAdmin;
     const isPredicted = !!pred;
 
     // Mode 1: node (Ultra-compact Bracket Node Card for desktop tree)
@@ -797,22 +800,17 @@ export default function BracketView({ matches, initialPredictions }: BracketView
                 </div>
 
                 {/* Info Deadline Banner */}
-                {(() => {
-                  const isLocked = new Date() > new Date(selectedMatch.deadline) || selectedMatch.is_finished;
-                  return (
-                    <div className={`p-3 rounded-xl text-xs flex items-center gap-2 border ${
-                      isLocked ? "bg-red-950/15 border-red-500/20 text-red-400" : "bg-[#00B894]/10 border-[#00B894]/20 text-[#00B894]"
-                    }`}>
-                      {isLocked ? <Lock className="h-4 w-4 shrink-0" /> : <Clock className="h-4 w-4 shrink-0" />}
-                      <span>
-                        {isLocked 
-                          ? "Las predicciones para este partido se encuentran cerradas."
-                          : `Se permite modificar predicciones hasta 1 hora antes de que inicie el encuentro.`
-                        }
-                      </span>
-                    </div>
-                  );
-                })()}
+                <div className={`p-3 rounded-xl text-xs flex items-center gap-2 border ${
+                  isModalMatchLocked ? "bg-red-950/15 border-red-500/20 text-red-400" : "bg-[#00B894]/10 border-[#00B894]/20 text-[#00B894]"
+                }`}>
+                  {isModalMatchLocked ? <Lock className="h-4 w-4 shrink-0" /> : <Clock className="h-4 w-4 shrink-0" />}
+                  <span>
+                    {isAdmin ? "Modo Administrador: Tienes permisos de solo lectura." : isModalMatchLocked 
+                      ? "Las predicciones para este partido se encuentran cerradas."
+                      : `Se permite modificar predicciones hasta 1 hora antes de que inicie el encuentro.`
+                    }
+                  </span>
+                </div>
 
                 {/* Score inputs form */}
                 <div className="flex items-center justify-center gap-6 py-4">
@@ -830,7 +828,7 @@ export default function BracketView({ matches, initialPredictions }: BracketView
                     <Input
                       type="number"
                       min="0"
-                      disabled={new Date() > new Date(selectedMatch.deadline) || selectedMatch.is_finished}
+                      disabled={isModalMatchLocked}
                       placeholder="0"
                       className="w-16 h-14 text-center text-2xl font-black bg-[#0a0a0a] border-slate-800 text-white focus:border-[#D4AF37] focus:ring-0 disabled:opacity-85 rounded-xl shadow-inner mt-1"
                       value={modalLocalScore}
@@ -839,8 +837,8 @@ export default function BracketView({ matches, initialPredictions }: BracketView
                         const otherScore = parseInt(modalVisitorScore, 10);
                         const thisScore = parseInt(e.target.value, 10);
                         if (!isNaN(thisScore) && !isNaN(otherScore)) {
-                          if (thisScore > otherScore) setModalWinnerId(selectedMatch.team1_id);
-                          if (thisScore < otherScore) setModalWinnerId(selectedMatch.team2_id);
+                           if (thisScore > otherScore) setModalWinnerId(selectedMatch.team1_id);
+                           if (thisScore < otherScore) setModalWinnerId(selectedMatch.team2_id);
                         }
                       }}
                       onBlur={() => {
@@ -866,7 +864,7 @@ export default function BracketView({ matches, initialPredictions }: BracketView
                     <Input
                       type="number"
                       min="0"
-                      disabled={new Date() > new Date(selectedMatch.deadline) || selectedMatch.is_finished}
+                      disabled={isModalMatchLocked}
                       placeholder="0"
                       className="w-16 h-14 text-center text-2xl font-black bg-[#0a0a0a] border-slate-800 text-white focus:border-[#D4AF37] focus:ring-0 disabled:opacity-85 rounded-xl shadow-inner mt-1"
                       value={modalVisitorScore}
@@ -875,8 +873,8 @@ export default function BracketView({ matches, initialPredictions }: BracketView
                         const otherScore = parseInt(modalLocalScore, 10);
                         const thisScore = parseInt(e.target.value, 10);
                         if (!isNaN(thisScore) && !isNaN(otherScore)) {
-                          if (otherScore > thisScore) setModalWinnerId(selectedMatch.team1_id);
-                          if (otherScore < thisScore) setModalWinnerId(selectedMatch.team2_id);
+                           if (otherScore > thisScore) setModalWinnerId(selectedMatch.team1_id);
+                           if (otherScore < thisScore) setModalWinnerId(selectedMatch.team2_id);
                         }
                       }}
                       onBlur={() => {
@@ -897,8 +895,7 @@ export default function BracketView({ matches, initialPredictions }: BracketView
                     <button
                       type="button"
                       disabled={
-                        new Date() > new Date(selectedMatch.deadline) || 
-                        selectedMatch.is_finished ||
+                        isModalMatchLocked ||
                         (modalLocalScore !== "" && modalVisitorScore !== "" && parseInt(modalLocalScore, 10) < parseInt(modalVisitorScore, 10))
                       }
                       onClick={() => setModalWinnerId(selectedMatch.team1_id)}
@@ -913,8 +910,7 @@ export default function BracketView({ matches, initialPredictions }: BracketView
                     <button
                       type="button"
                       disabled={
-                        new Date() > new Date(selectedMatch.deadline) || 
-                        selectedMatch.is_finished ||
+                        isModalMatchLocked ||
                         (modalLocalScore !== "" && modalVisitorScore !== "" && parseInt(modalLocalScore, 10) > parseInt(modalVisitorScore, 10))
                       }
                       onClick={() => setModalWinnerId(selectedMatch.team2_id)}
@@ -942,7 +938,7 @@ export default function BracketView({ matches, initialPredictions }: BracketView
                       Cancelar
                     </Button>
                   </Dialog.Close>
-                  {!(new Date() > new Date(selectedMatch.deadline) || selectedMatch.is_finished) && (
+                  {!isModalMatchLocked && (
                     <Button type="submit" disabled={isSaving} className="bg-[#D4AF37] hover:bg-[#C29E30] text-black font-bold rounded-xl shadow-lg shadow-[#D4AF37]/10 px-6">
                       {isSaving ? "Guardando..." : "Guardar Predicción"}
                     </Button>

@@ -61,6 +61,7 @@ interface PredictionFormProps {
   initialPredictions: Prediction[];
   teams: Team[];
   initialBonus: BonusPrediction | null;
+  isAdmin?: boolean;
 }
 
 const ROUND_NAMES: Record<string, string> = {
@@ -87,6 +88,7 @@ export default function PredictionForm({
   initialPredictions,
   teams,
   initialBonus,
+  isAdmin = false,
 }: PredictionFormProps) {
   const router = useRouter();
   
@@ -251,6 +253,15 @@ export default function PredictionForm({
 
   return (
     <div className="space-y-8 max-w-4xl">
+      {isAdmin && (
+        <div className="p-4 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-indigo-200 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-indigo-400 shrink-0" />
+          <div className="text-sm">
+            <span className="font-semibold text-indigo-100">Modo Administrador:</span> Vista de solo lectura. Los administradores no pueden registrar predicciones ni participar del juego.
+          </div>
+        </div>
+      )}
+
       {/* Round Header & Tab Links */}
       <div className="space-y-4">
         <h1 className="text-3xl font-extrabold text-[#D4AF37]">{ROUND_NAMES[round]}</h1>
@@ -324,7 +335,7 @@ export default function PredictionForm({
                 <div className="space-y-5">
                   {dayMatches.map((match) => {
                     const pred = predictions[match.id] || {};
-                    const isLocked = new Date() > new Date(match.deadline) || match.is_finished;
+                    const isLocked = new Date() > new Date(match.deadline) || match.is_finished || isAdmin;
                     const isDraw = pred.score_local !== undefined && pred.score_visitor !== undefined && pred.score_local === pred.score_visitor;
 
                     return (
@@ -613,7 +624,8 @@ export default function PredictionForm({
                         id="champion"
                         value={bonusChampion}
                         onChange={(e) => setBonusChampion(e.target.value)}
-                        className="w-full p-3 rounded-lg border border-[#1A2B3C] bg-[#0A0A0A] text-white focus:border-[#D4AF37] focus:ring-0 outline-none text-sm"
+                        disabled={isAdmin}
+                        className="w-full p-3 rounded-lg border border-[#1A2B3C] bg-[#0A0A0A] text-white focus:border-[#D4AF37] focus:ring-0 outline-none text-sm disabled:opacity-60"
                       >
                         <option value="">Selecciona Campeón...</option>
                         {teams.map((team) => (
@@ -631,7 +643,8 @@ export default function PredictionForm({
                         id="finalist1"
                         value={bonusFinalist1}
                         onChange={(e) => setBonusFinalist1(e.target.value)}
-                        className="w-full p-3 rounded-lg border border-[#1A2B3C] bg-[#0A0A0A] text-white focus:border-[#D4AF37] focus:ring-0 outline-none text-sm"
+                        disabled={isAdmin}
+                        className="w-full p-3 rounded-lg border border-[#1A2B3C] bg-[#0A0A0A] text-white focus:border-[#D4AF37] focus:ring-0 outline-none text-sm disabled:opacity-60"
                       >
                         <option value="">Selecciona Finalista 1...</option>
                         {teams.map((team) => (
@@ -649,7 +662,8 @@ export default function PredictionForm({
                         id="finalist2"
                         value={bonusFinalist2}
                         onChange={(e) => setBonusFinalist2(e.target.value)}
-                        className="w-full p-3 rounded-lg border border-[#1A2B3C] bg-[#0A0A0A] text-white focus:border-[#D4AF37] focus:ring-0 outline-none text-sm"
+                        disabled={isAdmin}
+                        className="w-full p-3 rounded-lg border border-[#1A2B3C] bg-[#0A0A0A] text-white focus:border-[#D4AF37] focus:ring-0 outline-none text-sm disabled:opacity-60"
                       >
                         <option value="">Selecciona Finalista 2...</option>
                         {teams.map((team) => (
@@ -668,14 +682,16 @@ export default function PredictionForm({
                         <span>Predicciones bonus guardadas</span>
                       </div>
                     )}
-                    <Button
-                      type="submit"
-                      className="bg-[#D4AF37] hover:bg-[#C29E30] text-black font-bold flex items-center gap-1.5 px-4"
-                      disabled={savingBonus}
-                    >
-                      <Save className="h-4 w-4" />
-                      {savingBonus ? "Guardando..." : "Guardar Predicciones Bonus"}
-                    </Button>
+                    {!isAdmin && (
+                      <Button
+                        type="submit"
+                        className="bg-[#D4AF37] hover:bg-[#C29E30] text-black font-bold flex items-center gap-1.5 px-4"
+                        disabled={savingBonus}
+                      >
+                        <Save className="h-4 w-4" />
+                        {savingBonus ? "Guardando..." : "Guardar Predicciones Bonus"}
+                      </Button>
+                    )}
                   </div>
                 </form>
               )}

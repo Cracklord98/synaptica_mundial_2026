@@ -26,6 +26,10 @@ export async function submitPrediction(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No autenticado");
 
+  // Block admins from predicting
+  const isAdmin = await checkAdmin(supabase);
+  if (isAdmin) throw new Error("Acceso denegado: Los administradores no pueden registrar predicciones.");
+
   // Get match deadline
   const { data: match } = await supabase
     .from("matches")
@@ -72,6 +76,10 @@ export async function submitBonus(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No autenticado");
 
+  // Block admins from predicting bonus
+  const isAdmin = await checkAdmin(supabase);
+  if (isAdmin) throw new Error("Acceso denegado: Los administradores no pueden registrar predicciones bonus.");
+
   // Check overall deadline: June 28, 2026 (first match of Round of 32)
   const deadline = new Date("2026-06-28T00:00:00Z");
   if (new Date() > deadline) {
@@ -95,10 +103,14 @@ export async function submitBonus(
 }
 
 // 5. Upload Model Card reference
-export async function uploadModelCard(fileUrl: string, description: string, repoUrl: string | null) {
+export async function uploadModelCard(answers: any, repoUrl: string | null) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No autenticado");
+
+  // Block admins from uploading model cards
+  const isAdmin = await checkAdmin(supabase);
+  if (isAdmin) throw new Error("Acceso denegado: Los administradores no participan de la pista analítica.");
 
   // Check deadline: July 17, 2026
   const deadline = new Date("2026-07-17T23:59:59Z");
@@ -110,8 +122,8 @@ export async function uploadModelCard(fileUrl: string, description: string, repo
     .from("model_cards")
     .upsert({
       user_id: user.id,
-      file_url: fileUrl,
-      description: description,
+      answers: answers,
+      description: answers?.q3_approach || null,
       repo_url: repoUrl,
       uploaded_at: new Date().toISOString(),
     }, { onConflict: "user_id" });

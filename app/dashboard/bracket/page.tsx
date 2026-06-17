@@ -26,10 +26,20 @@ export default async function BracketPage() {
     .select("match_id, score_local, score_visitor, winner_id")
     .eq("user_id", user.id);
 
+  // Fetch user profile to check admin status
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single();
+
+  const isAdmin = !!profile?.is_admin;
+
   return (
     <BracketView
       matches={matches || []}
       initialPredictions={predictions || []}
+      isAdmin={isAdmin}
     />
   );
 }

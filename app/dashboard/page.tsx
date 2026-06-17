@@ -35,21 +35,14 @@ export default async function DashboardPage() {
 
   const totalPoints = scores?.reduce((acc, curr) => acc + curr.points, 0) || 0;
 
-  // Sum points per user to compute ranking
-  const { data: rankings } = await supabase
-    .from("score_history")
-    .select("user_id, points");
+  // Fetch standings from the leaderboard view (which excludes admins)
+  const { data: standings } = await supabase
+    .from("leaderboard")
+    .select("user_id, total_points");
 
-  const userPointsMap: Record<string, number> = {};
-  rankings?.forEach(item => {
-    userPointsMap[item.user_id] = (userPointsMap[item.user_id] || 0) + item.points;
-  });
-
-  // Sort and find current user rank
-  const sortedUsers = Object.entries(userPointsMap).sort((a, b) => b[1] - a[1]);
-  const userRankIndex = sortedUsers.findIndex(([uid]) => uid === user.id);
+  const totalCompetitors = standings?.length || 0;
+  const userRankIndex = standings?.findIndex(item => item.user_id === user.id) ?? -1;
   const currentRank = userRankIndex !== -1 ? userRankIndex + 1 : "-";
-  const totalCompetitors = sortedUsers.length || 0;
 
   // Fetch total count of matches to show progress
   const { count: totalMatchesCount } = await supabase
@@ -78,8 +71,12 @@ export default async function DashboardPage() {
         </div>
         <div className="relative z-10 shrink-0 bg-[#D4AF37]/10 p-5 rounded-2xl border border-[#D4AF37]/30 text-center min-w-[140px]">
           <Trophy className="h-12 w-12 text-[#D4AF37] mx-auto mb-2" />
-          <p className="text-3xl font-black text-white">{totalPoints} pts</p>
-          <p className="text-xs text-[#D4AF37] uppercase font-bold tracking-wider">Puntaje Total</p>
+          <p className="text-3xl font-black text-white">
+            {profile.is_admin ? "Admin" : `${totalPoints} pts`}
+          </p>
+          <p className="text-xs text-[#D4AF37] uppercase font-bold tracking-wider">
+            {profile.is_admin ? "Rol de Cuenta" : "Puntaje Total"}
+          </p>
         </div>
       </div>
 
@@ -92,8 +89,14 @@ export default async function DashboardPage() {
             <TrendingUp className="h-4 w-4 text-[#D4AF37]" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-white">#{currentRank}</div>
-            <p className="text-xs text-gray-400 mt-1">de {totalCompetitors || 1} participantes activos</p>
+            <div className="text-3xl font-black text-white">
+              {profile.is_admin ? "N/A" : `#${currentRank}`}
+            </div>
+            <p className="text-xs text-gray-400 mt-1">
+              {profile.is_admin 
+                ? "Los administradores no participan" 
+                : `de ${totalCompetitors || 1} participantes activos`}
+            </p>
           </CardContent>
         </Card>
 
@@ -105,12 +108,16 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between items-baseline">
-              <span className="text-3xl font-black text-white">{predictionProgress}%</span>
+              <span className="text-3xl font-black text-white">
+                {profile.is_admin ? "N/A" : `${predictionProgress}%`}
+              </span>
               <span className="text-xs text-gray-400">
-                {userPredictionsCount || 0} / {totalMatchesCount || 0} partidos
+                {profile.is_admin 
+                  ? "Modo administrador" 
+                  : `${userPredictionsCount || 0} / ${totalMatchesCount || 0} partidos`}
               </span>
             </div>
-            <Progress value={predictionProgress} className="h-2 bg-[#1A2B3C]" />
+            <Progress value={profile.is_admin ? 0 : predictionProgress} className="h-2 bg-[#1A2B3C]" />
           </CardContent>
         </Card>
 
@@ -122,15 +129,25 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-white">
-              {scores?.filter(s => s.is_exact).length || 0}
+              {profile.is_admin ? "N/A" : (scores?.filter(s => s.is_exact).length || 0)}
             </div>
-            <p className="text-xs text-gray-400 mt-1">predicciones con marcador perfecto</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {profile.is_admin ? "No aplica para administrador" : "predicciones con marcador perfecto"}
+            </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Visualizations & Advanced Charts */}
-      <DashboardCharts scores={scores || []} />
+      {profile.is_admin ? (
+        <Card className="border-[#1A2B3C] bg-[#121212] premium-card p-8 text-center">
+          <p className="text-gray-400 text-sm">
+            Los administradores no participan del juego ni registran predicciones, por lo que no se muestran gráficos de rendimiento. Puedes utilizar el menú lateral para administrar la polla.
+          </p>
+        </Card>
+      ) : (
+        <DashboardCharts scores={scores || []} />
+      )}
 
       {/* Model card info */}
       <Card className="border-[#1A2B3C] bg-[#121212]">

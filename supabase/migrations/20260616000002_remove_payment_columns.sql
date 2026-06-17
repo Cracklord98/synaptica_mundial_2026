@@ -27,6 +27,7 @@ SELECT
   COALESCE(SUM(CASE WHEN sh.round IN ('final', 'third_place') THEN sh.points ELSE 0 END), 0)::integer AS final_points
 FROM public.profiles p
 LEFT JOIN public.score_history sh ON sh.user_id = p.id
+WHERE p.is_admin = FALSE
 GROUP BY p.id, p.username, p.team_name
 ORDER BY total_points DESC, exact_count DESC;
 
