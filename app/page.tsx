@@ -330,40 +330,85 @@ export default function Home() {
 
       {/* Prizes Pool Box */}
       <section id="premios" className="w-full max-w-5xl px-6 py-16">
-        <div className="premium-card p-8 md:p-12 rounded-3xl border border-[#1e293b] bg-gradient-to-r from-[#1A2B3C]/10 via-[#070708] to-[#1A2B3C]/10 text-center space-y-6 shadow-2xl relative overflow-hidden">
+        <div className="premium-card p-8 md:p-12 rounded-3xl border border-[#1e293b]/70 bg-gradient-to-r from-[#1A2B3C]/10 via-[#070708] to-[#1A2B3C]/10 space-y-8 shadow-2xl relative overflow-hidden">
           <div className="absolute top-[-30%] left-[-10%] w-[300px] h-[300px] bg-[#D4AF37]/5 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute bottom-[-30%] right-[-10%] w-[300px] h-[300px] bg-[#00B894]/3 rounded-full blur-[100px] pointer-events-none" />
           
-          <div className="relative z-10">
-            <span className="text-[#00B894] font-bold text-xs uppercase tracking-widest block">Reconocimientos Corporativos</span>
-            <h2 className="text-3xl md:text-5xl font-black text-white mt-1">🎁 Premios Sorpresa Especiales</h2>
-            <p className="text-sm sm:text-base text-gray-400 mt-2 max-w-xl mx-auto leading-relaxed">
-              Los mejores competidores en ambas pistas (Precisión y Analítica) serán galardonados con increíbles sorpresas en nuestra ceremonia de integración corporativa.
+          <div className="relative z-10 text-center">
+            <span className="text-[#00B894] font-bold text-xs uppercase tracking-widest block">Incentivos Corporativos</span>
+            <h2 className="text-3xl md:text-5xl font-black text-white mt-1">🏆 Premios y Reconocimientos</h2>
+            <p className="text-sm sm:text-base text-gray-400 mt-2 max-w-2xl mx-auto leading-relaxed">
+              Los premios son un incentivo de Synaptica para promover la adopción de herramientas de ciencia de datos, y no son producto de apuestas entre los participantes.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-6 relative z-10">
-            <div className="bg-[#070708]/90 p-6 rounded-2xl border border-[#D4AF37]/30 hover:border-[#D4AF37]/60 transition-all flex flex-col justify-center items-center group">
-              <Trophy className="h-10 w-10 text-[#D4AF37] mb-3 group-hover:scale-110 transition-transform" />
-              <span className="text-xs text-gray-500 block font-extrabold uppercase">1er Puesto Absoluto</span>
-              <strong className="text-lg font-black text-[#D4AF37] mt-1">Gran Premio Sorpresa</strong>
-            </div>
-            
-            <div className="bg-[#070708]/90 p-6 rounded-2xl border border-[#1e293b] hover:border-[#00B894]/40 transition-all flex flex-col justify-center items-center group">
-              <Award className="h-10 w-10 text-gray-300 mb-3 group-hover:scale-110 transition-transform" />
-              <span className="text-xs text-gray-500 block font-extrabold uppercase">2do Puesto Absoluto</span>
-              <strong className="text-lg font-black text-white mt-1">Premio de Plata Sorpresa</strong>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+            {/* Pista Precision Card */}
+            <div className="bg-[#070708]/90 p-6 rounded-2xl border border-[#00B894]/20 hover:border-[#00B894]/40 transition-all space-y-4 text-left">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-[#00B894]/10 rounded-lg border border-[#00B894]/20">
+                  <Trophy className="h-5 w-5 text-[#00B894]" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Pista Precisión</h3>
+                  <span className="text-[10px] text-gray-500 font-extrabold uppercase">Acierto de Marcadores</span>
+                </div>
+              </div>
+              
+              <div className="space-y-2.5">
+                <div className="flex justify-between items-center bg-[#0d1535]/40 p-3 rounded-xl border border-[#1e293b]/60">
+                  <span className="text-xs text-gray-400 font-semibold">1er Lugar</span>
+                  <strong className="text-sm font-black text-white">$1.000 COP x punto <span className="text-[10px] text-gray-400 font-normal">(máx. $150K)</span></strong>
+                </div>
+                <div className="flex justify-between items-center bg-[#0d1535]/40 p-3 rounded-xl border border-[#1e293b]/60">
+                  <span className="text-xs text-gray-400 font-semibold">2do Lugar</span>
+                  <strong className="text-sm font-black text-white">$500 COP x punto <span className="text-[10px] text-gray-400 font-normal">(máx. $75K)</span></strong>
+                </div>
+                <div className="flex justify-between items-center bg-[#0d1535]/40 p-3 rounded-xl border border-[#1e293b]/60">
+                  <span className="text-xs text-gray-400 font-semibold">3er Lugar</span>
+                  <strong className="text-sm font-black text-white">$350 COP x punto <span className="text-[10px] text-gray-400 font-normal">(máx. $52.5K)</span></strong>
+                </div>
+                <div className="flex justify-between items-center bg-[#D4AF37]/5 p-3 rounded-xl border border-[#D4AF37]/20">
+                  <span className="text-xs text-[#D4AF37] font-bold">Mención "Cisne Negro"</span>
+                  <strong className="text-xs font-black text-[#D4AF37]">Bono Regalo de Rappi</strong>
+                </div>
+              </div>
             </div>
 
-            <div className="bg-[#070708]/90 p-6 rounded-2xl border border-[#1e293b] hover:border-[#00B894]/40 transition-all flex flex-col justify-center items-center group">
-              <Award className="h-10 w-10 text-amber-600 mb-3 group-hover:scale-110 transition-transform" />
-              <span className="text-xs text-gray-500 block font-extrabold uppercase">Mejor Model Card</span>
-              <strong className="text-lg font-black text-amber-600 mt-1">Reconocimiento Científico</strong>
+            {/* Pista Analitica Card */}
+            <div className="bg-[#070708]/90 p-6 rounded-2xl border border-[#D4AF37]/20 hover:border-[#D4AF37]/40 transition-all space-y-4 text-left">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-[#D4AF37]/10 rounded-lg border border-[#D4AF37]/20">
+                  <Award className="h-5 w-5 text-[#D4AF37]" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Pista Analítica</h3>
+                  <span className="text-[10px] text-gray-500 font-extrabold uppercase">Ficha Metodológica (Model Card)</span>
+                </div>
+              </div>
+
+              <div className="space-y-2.5">
+                <div className="flex justify-between items-center bg-[#0d1535]/40 p-4 rounded-xl border border-[#1e293b]/60">
+                  <span className="text-xs text-gray-400 font-semibold">1er Lugar</span>
+                  <strong className="text-sm font-black text-[#D4AF37]">Bono de $150.000 COP</strong>
+                </div>
+                <div className="flex justify-between items-center bg-[#0d1535]/40 p-4 rounded-xl border border-[#1e293b]/60">
+                  <span className="text-xs text-gray-400 font-semibold">2do Lugar</span>
+                  <strong className="text-sm font-black text-white">Bono de $75.000 COP</strong>
+                </div>
+                <div className="p-3 bg-[#1e293b]/10 rounded-xl border border-[#1e293b]/40 text-center">
+                  <p className="text-[10px] text-gray-400 leading-normal">
+                    Se evaluará el rigor metodológico, explicabilidad del modelo y creatividad en la documentación analítica.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
-          <p className="text-xs text-gray-500 pt-4 relative z-10">
-            * Actividad voluntaria de integración. Las decisiones y clasificaciones son definitivas y administradas por el comité analítico.
-          </p>
+          <div className="pt-4 border-t border-[#1e293b]/60 text-xs text-gray-400 flex flex-col sm:flex-row justify-between items-center gap-2 relative z-10 text-left">
+            <span>⚠️ <strong>Nota Importante:</strong> Los premios no son acumulables. Cada participante solo podrá ganar uno de los premios en disputa.</span>
+            <span className="text-[#00B894] font-bold">Synaptica S.A.S.</span>
+          </div>
         </div>
       </section>
 
