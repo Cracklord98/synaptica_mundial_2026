@@ -89,10 +89,33 @@ export default function PredictionForm({
   initialBonus,
 }: PredictionFormProps) {
   const router = useRouter();
-  const [predictions, setPredictions] = useState<Record<string, Partial<Prediction>>>(() => {
-    const map: Record<string, Partial<Prediction>> = {};
+  
+  // Track currently saved predictions in state to compare with inputs
+  const [savedPredictions, setSavedPredictions] = useState<Record<string, Prediction>>(() => {
+    const map: Record<string, Prediction> = {};
     initialPredictions.forEach((pred) => {
       map[pred.match_id] = pred;
+    });
+    return map;
+  });
+
+  // Track current form input states, defaulting empty predictions to 0 - 0
+  const [predictions, setPredictions] = useState<Record<string, Partial<Prediction>>>(() => {
+    const map: Record<string, Partial<Prediction>> = {};
+    // Load existing predictions
+    initialPredictions.forEach((pred) => {
+      map[pred.match_id] = { ...pred };
+    });
+    // Default empty ones to 0 - 0
+    matches.forEach((match) => {
+      if (!map[match.id]) {
+        map[match.id] = {
+          match_id: match.id,
+          score_local: 0,
+          score_visitor: 0,
+          winner_id: undefined,
+        };
+      }
     });
     return map;
   });
@@ -100,6 +123,18 @@ export default function PredictionForm({
   const [savingMatchId, setSavingMatchId] = useState<string | null>(null);
   const [successMatchId, setSuccessMatchId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Helper to determine if a match prediction is currently saved and unmodified
+  const isPredictionSaved = (matchId: string) => {
+    const current = predictions[matchId];
+    const saved = savedPredictions[matchId];
+    if (!current || !saved) return false;
+    return (
+      current.score_local === saved.score_local &&
+      current.score_visitor === saved.score_visitor &&
+      current.winner_id === saved.winner_id
+    );
+  };
 
   // Bonus form state
   const [bonusChampion, setBonusChampion] = useState(initialBonus?.champion_id || "");
@@ -171,6 +206,18 @@ export default function PredictionForm({
         pred.score_visitor,
         pred.winner_id
       );
+      
+      // Update saved state reference to mark as saved
+      setSavedPredictions((prev) => ({
+        ...prev,
+        [matchId]: {
+          match_id: matchId,
+          score_local: pred.score_local!,
+          score_visitor: pred.score_visitor!,
+          winner_id: pred.winner_id!,
+        },
+      }));
+
       setSuccessMatchId(matchId);
       setTimeout(() => setSuccessMatchId(null), 2500);
     } catch (err: unknown) {
@@ -499,15 +546,27 @@ export default function PredictionForm({
                                     <span>Predicción guardada</span>
                                   </div>
                                 )}
-                                <Button
-                                  type="button"
-                                  onClick={() => savePredictionForMatch(match.id)}
-                                  className="bg-[#D4AF37] hover:bg-[#C29E30] text-black font-bold flex items-center gap-1.5 px-4 rounded-xl py-5 shadow-lg shadow-[#D4AF37]/10"
-                                  disabled={savingMatchId === match.id}
-                                >
-                                  <Save className="h-4 w-4" />
-                                  {savingMatchId === match.id ? "Guardando..." : "Guardar Pronóstico"}
-                                </Button>
+                                {isPredictionSaved(match.id) ? (
+                                  <Button
+                                    type="button"
+                                    onClick={() => savePredictionForMatch(match.id)}
+                                    className="bg-[#00B894] hover:bg-[#00B894]/90 text-white font-bold flex items-center gap-1.5 px-4 rounded-xl py-5 shadow-lg shadow-[#00B894]/10 transition-colors"
+                                    disabled={savingMatchId === match.id}
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                    {savingMatchId === match.id ? "Guardando..." : "Guardado"}
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    type="button"
+                                    onClick={() => savePredictionForMatch(match.id)}
+                                    className="bg-[#D4AF37] hover:bg-[#C29E30] text-black font-bold flex items-center gap-1.5 px-4 rounded-xl py-5 shadow-lg shadow-[#D4AF37]/10 transition-colors"
+                                    disabled={savingMatchId === match.id}
+                                  >
+                                    <Save className="h-4 w-4" />
+                                    {savingMatchId === match.id ? "Guardando..." : "Guardar Pronóstico"}
+                                  </Button>
+                                )}
                               </div>
                             )}
                           </CardContent>
