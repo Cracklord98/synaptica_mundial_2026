@@ -3,14 +3,14 @@ import Link from "next/link";
 import { 
   Trophy, 
   Award, 
-  User, 
-  Clock, 
   ChevronRight,
   TrendingUp,
-  FileText
+  FileText,
+  Target
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import DashboardCharts from "@/components/dashboard/DashboardCharts";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -30,7 +30,7 @@ export default async function DashboardPage() {
   // Fetch user stats from score_history
   const { data: scores } = await supabase
     .from("score_history")
-    .select("points, match_id")
+    .select("points, match_id, round, is_exact")
     .eq("user_id", user.id);
 
   const totalPoints = scores?.reduce((acc, curr) => acc + curr.points, 0) || 0;
@@ -114,20 +114,23 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Stat Mode */}
+        {/* Stat Exact Hits */}
         <Card className="border-[#1A2B3C] bg-[#121212] hover-gold-glow">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-semibold text-gray-400">Equipo Registrado</CardTitle>
-            <User className="h-4 w-4 text-[#D4AF37]" />
+            <CardTitle className="text-sm font-semibold text-gray-400">Marcadores Exactos</CardTitle>
+            <Target className="h-4 w-4 text-[#00B894]" />
           </CardHeader>
           <CardContent>
-            <div>
-              <div className="text-lg font-bold text-white truncate">{profile.team_name || `@${profile.username}`}</div>
-              <p className="text-xs text-gray-450 mt-1">Nombre oficial de tu participación</p>
+            <div className="text-3xl font-black text-white">
+              {scores?.filter(s => s.is_exact).length || 0}
             </div>
+            <p className="text-xs text-gray-400 mt-1">predicciones con marcador perfecto</p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Visualizations & Advanced Charts */}
+      <DashboardCharts scores={scores || []} />
 
       {/* Model card info */}
       <Card className="border-[#1A2B3C] bg-[#121212]">
