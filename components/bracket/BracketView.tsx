@@ -545,8 +545,8 @@ export default function BracketView({ matches, initialPredictions }: BracketView
             })()}
           </div>
 
-          {/* Third Place Match (Special render in semi or final mobile tab) */}
-          {(activeMobileTab === "final" || activeMobileTab === "semi") && thirdPlace && (
+          {/* Third Place Match (Special render in final mobile tab) */}
+          {activeMobileTab === "final" && thirdPlace && (
             <div className="w-full pt-6 border-t border-slate-800/60 space-y-4">
               <h3 className="font-extrabold text-sm text-[#00B894] uppercase tracking-wider flex items-center gap-2">
                 <span className="w-1.5 h-3 bg-[#00B894] rounded-sm" />
@@ -751,8 +751,8 @@ export default function BracketView({ matches, initialPredictions }: BracketView
               })()}
             </div>
 
-            {/* Third Place Match for Final/Semi tabs */}
-            {(activeMobileTab === "final" || activeMobileTab === "semi") && thirdPlace && (
+            {/* Third Place Match for Final tab */}
+            {activeMobileTab === "final" && thirdPlace && (
               <div className="pt-8 border-t border-slate-800/60 space-y-4">
                 <h3 className="font-extrabold text-sm text-[#00B894] uppercase tracking-wider flex items-center gap-2">
                   <span className="w-1.5 h-3 bg-[#00B894] rounded-sm" />
