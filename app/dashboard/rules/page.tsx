@@ -30,7 +30,7 @@ export default function RulesPage() {
     <div className="space-y-8 max-w-5xl mx-auto">
       <div>
         <h1 className="text-3xl md:text-4xl font-extrabold text-[#D4AF37] flex items-center gap-3">
-          <BookOpen className="h-8 w-8" />
+          <BookOpen className="h-8 w-8 text-[#D4AF37]" />
           Bases y Reglas del Torneo
         </h1>
         <p className="text-gray-400 mt-2 text-sm md:text-base">
@@ -49,7 +49,7 @@ export default function RulesPage() {
           <Card className="h-full border-[#1A2B3C] bg-gradient-to-br from-[#121212] to-[#0A0A0A] text-white premium-card">
             <CardHeader className="border-b border-[#1A2B3C] bg-[#1A2B3C]/10">
               <CardTitle className="text-xl font-bold text-[#00B894] flex items-center gap-2">
-                <Target className="h-5 w-5" />
+                <Target className="h-5 w-5 text-[#00B894]" />
                 Pista Precisión
               </CardTitle>
               <CardDescription className="text-gray-400">
@@ -83,20 +83,8 @@ export default function RulesPage() {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-[#1A2B3C]">
-                <h4 className="font-semibold text-sm text-gray-300 mb-3 flex items-center gap-2">
-                  <Trophy className="h-4 w-4 text-[#D4AF37]" /> Bonus (Única vez)
-                </h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Acertar al Campeón</span>
-                    <span className="font-bold text-[#00B894]">+10 pts</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Acertar cada Finalista</span>
-                    <span className="font-bold text-[#00B894]">+5 pts c/u</span>
-                  </div>
-                </div>
+              <div className="p-3.5 bg-yellow-950/10 border border-yellow-900/20 rounded-lg text-xs text-yellow-400 leading-normal">
+                Nota: Se ha removido la bonificación de puntos por acertar el Campeón o Finalistas antes de iniciar el torneo. Los puntos se calculan estrictamente partido a partido en tiempo regular.
               </div>
             </CardContent>
           </Card>
@@ -107,7 +95,7 @@ export default function RulesPage() {
           <Card className="h-full border-[#1A2B3C] bg-gradient-to-bl from-[#121212] to-[#0A0A0A] text-white premium-card">
             <CardHeader className="border-b border-[#1A2B3C] bg-[#1A2B3C]/10">
               <CardTitle className="text-xl font-bold text-[#9D4EDD] flex items-center gap-2">
-                <BrainCircuit className="h-5 w-5" />
+                <BrainCircuit className="h-5 w-5 text-[#9D4EDD]" />
                 Pista Analítica
               </CardTitle>
               <CardDescription className="text-gray-400">
@@ -116,20 +104,20 @@ export default function RulesPage() {
             </CardHeader>
             <CardContent className="p-6 space-y-6">
               <p className="text-sm text-gray-300">
-                El desempeño predictivo <strong>NO</strong> pondera en esta pista. Puede ganar un modelo elegante que no acertó la final. Se premia el pensamiento analítico y la creatividad.
+                El desempeño predictivo <strong>NO</strong> pondera en esta pista. Puede ganar un modelo elegante que no acertó ningún marcador. Se premia el rigor técnico y la creatividad del enfoque.
               </p>
               
               <div className="space-y-3">
                 <h4 className="font-semibold text-sm text-gray-300">Rúbrica del Jurado (100 pts)</h4>
                 
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-full bg-[#9D4EDD]/20 flex items-center justify-center shrink-0 text-[#9D4EDD] font-bold text-xs">
                       30%
                     </div>
                     <div>
                       <p className="font-medium text-sm text-white">Rigor Analítico</p>
-                      <p className="text-xs text-gray-400">Metodología sólida y bien justificada.</p>
+                      <p className="text-xs text-gray-400">Metodología sólida, tratamiento de datos y modelado matemático justificado.</p>
                     </div>
                   </div>
                   
@@ -139,7 +127,7 @@ export default function RulesPage() {
                     </div>
                     <div>
                       <p className="font-medium text-sm text-white">Creatividad e Innovación</p>
-                      <p className="text-xs text-gray-400">Enfoque original y uso ingenioso de datos.</p>
+                      <p className="text-xs text-gray-400">Enfoque original en la obtención o ingeniería de variables y modelos.</p>
                     </div>
                   </div>
 
@@ -149,7 +137,7 @@ export default function RulesPage() {
                     </div>
                     <div>
                       <p className="font-medium text-sm text-white">Reproducibilidad</p>
-                      <p className="text-xs text-gray-400">Otro equipo podría replicarlo fácilmente.</p>
+                      <p className="text-xs text-gray-400">Documentación clara para que otro analista pueda replicar el modelo.</p>
                     </div>
                   </div>
 
@@ -158,11 +146,78 @@ export default function RulesPage() {
                       20%
                     </div>
                     <div>
-                      <p className="font-medium text-sm text-white">Storytelling</p>
-                      <p className="text-xs text-gray-400">Claridad en el Model Card y visualizaciones.</p>
+                      <p className="font-medium text-sm text-white">Comunicación (Storytelling)</p>
+                      <p className="text-xs text-gray-400">Claridad al explicar el enfoque en la Ficha Metodológica (Model Card).</p>
                     </div>
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Premios del Torneo */}
+        <motion.div variants={itemVariants} className="lg:col-span-2">
+          <Card className="border-[#1A2B3C] bg-[#121212] text-white premium-card border-l-4 border-l-[#D4AF37]">
+            <CardHeader className="border-b border-[#1A2B3C] bg-[#1A2B3C]/10">
+              <CardTitle className="text-lg font-bold text-[#D4AF37] flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-[#D4AF37]" />
+                Premios de la Actividad
+              </CardTitle>
+              <CardDescription className="text-gray-400">
+                Los premios son incentivos corporativos de Synaptica y no producto de apuestas entre los participantes.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Premios Precision */}
+                <div className="space-y-3">
+                  <h4 className="font-extrabold text-sm text-[#00B894] uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="w-1.5 h-3 bg-[#00B894] rounded-sm" />
+                    Pista Precisión
+                  </h4>
+                  <ul className="space-y-2 text-xs">
+                    <li className="flex justify-between items-center bg-[#0A0A0A] p-2.5 rounded border border-slate-800">
+                      <span className="text-gray-400">1er Lugar</span>
+                      <strong className="text-white font-bold">1.000 COP por punto (máx. 150.000 COP)</strong>
+                    </li>
+                    <li className="flex justify-between items-center bg-[#0A0A0A] p-2.5 rounded border border-slate-800">
+                      <span className="text-gray-400">2do Lugar</span>
+                      <strong className="text-white font-bold">500 COP por punto (máx. 75.000 COP)</strong>
+                    </li>
+                    <li className="flex justify-between items-center bg-[#0A0A0A] p-2.5 rounded border border-slate-800">
+                      <span className="text-gray-400">3er Lugar</span>
+                      <strong className="text-white font-bold">350 COP por punto (máx. 52.500 COP)</strong>
+                    </li>
+                    <li className="flex justify-between items-center bg-[#0A0A0A] p-2.5 rounded border border-slate-800">
+                      <span className="text-gray-400">Mención "Cisne Negro" (Acierto improbable)</span>
+                      <strong className="text-[#D4AF37] font-bold">Bono Regalo de Rappi</strong>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Premios Analiticos */}
+                <div className="space-y-3">
+                  <h4 className="font-extrabold text-sm text-[#9D4EDD] uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="w-1.5 h-3 bg-[#9D4EDD] rounded-sm" />
+                    Pista Analítica
+                  </h4>
+                  <ul className="space-y-2 text-xs">
+                    <li className="flex justify-between items-center bg-[#0A0A0A] p-2.5 rounded border border-slate-800">
+                      <span className="text-gray-400">1er Lugar</span>
+                      <strong className="text-white font-bold">Bono de 150.000 COP</strong>
+                    </li>
+                    <li className="flex justify-between items-center bg-[#0A0A0A] p-2.5 rounded border border-slate-800">
+                      <span className="text-gray-400">2do Lugar</span>
+                      <strong className="text-white font-bold">Bono de 75.000 COP</strong>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-800 text-[11px] text-gray-450 space-y-1.5 leading-relaxed">
+                <p>⚠️ <strong>NOTA IMPORTANTE:</strong> Los premios <strong>no son acumulables</strong>. Cada participante solo podrá ganar uno de los premios en disputa.</p>
+                <p>🤝 Todos los premios son un incentivo para promover la adopción de herramientas de ciencia de datos, y están sujetos a validación por la organización.</p>
               </div>
             </CardContent>
           </Card>
@@ -187,7 +242,7 @@ export default function RulesPage() {
               <div className="flex gap-3 items-start">
                 <CheckCircle2 className="h-5 w-5 text-[#00B894] shrink-0 mt-0.5" />
                 <p className="text-sm text-gray-300">
-                  <strong className="text-white">Entregables:</strong> Las predicciones se hacen ronda a ronda por esta app. El Model Card (máx 1 pág) se sube antes de la final.
+                  <strong className="text-white">Entregables:</strong> Las predicciones se hacen ronda a ronda por esta app. El Model Card (Ficha Metodológica) se sube antes de la final.
                 </p>
               </div>
               <div className="flex gap-3 items-start">
@@ -205,7 +260,7 @@ export default function RulesPage() {
               <div className="flex gap-3 items-start">
                 <AlertTriangle className="h-5 w-5 text-[#D4AF37] shrink-0 mt-0.5" />
                 <p className="text-sm text-gray-300">
-                  <strong className="text-white">Inapelable:</strong> Las decisiones del jurado en la Pista Analítica son inapelables.
+                  <strong className="text-white">Inapelable:</strong> Las decisiones del jurado en la Pista Analítica son definitivas e inapelables.
                 </p>
               </div>
             </CardContent>

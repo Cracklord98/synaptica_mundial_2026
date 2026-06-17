@@ -45,17 +45,8 @@ export default async function DashboardLayout({
     return redirect("/auth/login");
   }
 
-  // Fetch pending partner invitations (where partner_email matches this user's email)
-  let pendingInvitation = null;
-  if (user.email) {
-    const { data: invitation } = await supabase
-      .from("profiles")
-      .select("id, username, team_name")
-      .eq("partner_email", user.email.toLowerCase().trim())
-      .is("partner_id", null)
-      .maybeSingle();
-    pendingInvitation = invitation;
-  }
+  // Partner invitations are disabled since duplas are no longer allowed
+  const pendingInvitation = null;
 
   const handleSignOut = async () => {
     "use server";

@@ -202,7 +202,7 @@ export async function submitBonus(
 }
 
 // 5. Upload Model Card reference
-export async function uploadModelCard(fileUrl: string, description: string) {
+export async function uploadModelCard(fileUrl: string, description: string, repoUrl: string | null) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No autenticado");
@@ -219,12 +219,14 @@ export async function uploadModelCard(fileUrl: string, description: string) {
       user_id: user.id,
       file_url: fileUrl,
       description: description,
+      repo_url: repoUrl,
       uploaded_at: new Date().toISOString(),
     }, { onConflict: "user_id" });
 
   if (error) throw error;
 
   revalidatePath("/model-card");
+  revalidatePath("/dashboard/model-card");
   return { success: true };
 }
 
@@ -355,5 +357,28 @@ export async function saveMatchesBulk(matches: any[]) {
     .upsert(matches);
 
   if (error) throw error;
+  return { success: true };
+}
+
+// 11. Delete Participant (Admin tool)
+export async function deleteUserAction(userId: string) {
+  const supabase = await createClient();
+  const isAdmin = await checkAdmin(supabase);
+  if (!isAdmin) throw new Error("Acceso denegado");
+
+  // Check if trying to delete own admin profile
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user && user.id === userId) {
+    throw new Error("No puedes eliminar tu propio usuario administrador");
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .delete()
+    .eq("id", userId);
+
+  if (error) throw error;
+
+  revalidatePath("/dashboard/admin/users");
   return { success: true };
 }

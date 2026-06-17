@@ -102,7 +102,7 @@ export default function DashboardShell({
           {profile.team_name ? (
             <div className="mt-4 flex items-center gap-2 text-xs text-[#00B894] font-semibold bg-[#00B894]/10 border border-[#00B894]/20 py-2 px-3 rounded-lg">
               <UsersIcon className="h-3.5 w-3.5" />
-              <span className="truncate">Dupla: {profile.team_name}</span>
+              <span className="truncate">Equipo: {profile.team_name}</span>
             </div>
           ) : (
             <div className="mt-4 flex items-center gap-2 text-xs text-gray-400 bg-[#0d1535] border border-[#1e293b]/60 py-2 px-3 rounded-lg">
@@ -236,7 +236,7 @@ export default function DashboardShell({
                     <p className="text-xs text-gray-500 truncate mt-0.5">{email}</p>
                     {profile.team_name ? (
                       <span className="inline-block mt-3 text-[10px] text-[#00B894] font-bold bg-[#00B894]/10 border border-[#00B894]/20 py-1 px-2.5 rounded-full">
-                        Dupla: {profile.team_name}
+                        Equipo: {profile.team_name}
                       </span>
                     ) : (
                       <span className="inline-block mt-3 text-[10px] text-gray-400 bg-white/5 py-1 px-2.5 rounded-full">

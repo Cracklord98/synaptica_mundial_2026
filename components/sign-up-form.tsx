@@ -24,9 +24,7 @@ export function SignUpForm({
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
-  const [participationMode, setParticipationMode] = useState<"individual" | "dupla" | null>(null);
   const [teamName, setTeamName] = useState("");
-  const [partnerEmail, setPartnerEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -37,20 +35,8 @@ export function SignUpForm({
     setIsLoading(true);
     setError(null);
 
-    if (!participationMode) {
-      setError("Por favor selecciona si vas a jugar de forma Individual o en Dupla");
-      setIsLoading(false);
-      return;
-    }
-
     if (password !== repeatPassword) {
       setError("Las contraseñas no coinciden");
-      setIsLoading(false);
-      return;
-    }
-
-    if (participationMode === "dupla" && (!teamName || !partnerEmail)) {
-      setError("Por favor completa los campos del equipo en pareja");
       setIsLoading(false);
       return;
     }
@@ -63,8 +49,8 @@ export function SignUpForm({
           emailRedirectTo: `${window.location.origin}/dashboard`,
           data: {
             username,
-            team_name: participationMode === "dupla" ? teamName : null,
-            partner_email: participationMode === "dupla" ? partnerEmail.toLowerCase().trim() : null,
+            team_name: teamName.trim() || null,
+            partner_email: null,
           },
         },
       });
@@ -106,12 +92,26 @@ export function SignUpForm({
                 <Input
                   id="email"
                   type="email"
-                  placeholder="tu@correo.com"
+                  placeholder="m@example.com"
                   required
                   className="border-[#1A2B3C] bg-[#121212] text-white focus:border-[#D4AF37] focus:ring-0"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="teamName" className="text-gray-300">Nombre de Polla / Equipo (Opcional)</Label>
+                <Input
+                  id="teamName"
+                  placeholder="ej. Los Galácticos"
+                  className="border-[#1A2B3C] bg-[#121212] text-white focus:border-[#D4AF37] focus:ring-0"
+                  value={teamName}
+                  onChange={(e) => setTeamName(e.target.value)}
+                />
+                <p className="text-[10px] text-gray-500">
+                  Un nombre personalizado para identificar tus predicciones en el ranking.
+                </p>
               </div>
 
               <div className="grid gap-2">
@@ -127,9 +127,9 @@ export function SignUpForm({
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="repeat-password" className="text-gray-300">Repetir Contraseña</Label>
+                <Label htmlFor="repeatPassword" className="text-gray-300">Repetir Contraseña</Label>
                 <Input
-                  id="repeat-password"
+                  id="repeatPassword"
                   type="password"
                   required
                   className="border-[#1A2B3C] bg-[#121212] text-white focus:border-[#D4AF37] focus:ring-0"
@@ -138,86 +138,21 @@ export function SignUpForm({
                 />
               </div>
 
-              <div className="grid gap-2">
-                <Label className="text-gray-300 mb-1">Modo de Participación</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setParticipationMode("individual")}
-                    className={cn(
-                      "py-2 px-3 rounded-lg border text-sm font-medium transition-colors",
-                      participationMode === "individual"
-                        ? "bg-[#D4AF37] text-black border-[#D4AF37]"
-                        : "bg-[#121212] text-gray-300 border-[#1A2B3C] hover:border-gray-500"
-                    )}
-                  >
-                    Individual (1 Persona)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setParticipationMode("dupla")}
-                    className={cn(
-                      "py-2 px-3 rounded-lg border text-sm font-medium transition-colors",
-                      participationMode === "dupla"
-                        ? "bg-[#D4AF37] text-black border-[#D4AF37]"
-                        : "bg-[#121212] text-gray-300 border-[#1A2B3C] hover:border-gray-500"
-                    )}
-                  >
-                    Dupla (Pareja)
-                  </button>
-                </div>
-              </div>
-
-              {participationMode === "dupla" && (
-                <div className="flex flex-col gap-4 p-4 rounded-lg bg-[#121212] border border-[#1A2B3C] animate-in fade-in slide-in-from-top-4 duration-200">
-                  <div className="grid gap-2">
-                    <Label htmlFor="teamName" className="text-[#D4AF37]">Nombre de la Dupla (Equipo)</Label>
-                    <Input
-                      id="teamName"
-                      placeholder="ej. Los Galácticos"
-                      required={participationMode === "dupla"}
-                      className="border-[#1A2B3C] bg-[#0A0A0A] text-white focus:border-[#D4AF37] focus:ring-0"
-                      value={teamName}
-                      onChange={(e) => setTeamName(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="partnerEmail" className="text-[#D4AF37]">Correo del Compañero</Label>
-                    <Input
-                      id="partnerEmail"
-                      type="email"
-                      placeholder="correo@companero.com"
-                      required={participationMode === "dupla"}
-                      className="border-[#1A2B3C] bg-[#0A0A0A] text-white focus:border-[#D4AF37] focus:ring-0"
-                      value={partnerEmail}
-                      onChange={(e) => setPartnerEmail(e.target.value)}
-                    />
-                    <p className="text-xs text-gray-400 mt-1">
-                      Le enviaremos una invitación a este correo al crear la cuenta.
-                    </p>
-                  </div>
-                </div>
-              )}
-
               {error && <p className="text-sm text-red-500 bg-red-950/30 p-3 rounded-lg border border-red-500/50">{error}</p>}
               
               <Button 
                 type="submit" 
-                className="w-full bg-[#D4AF37] text-black hover:bg-[#C29E30] transition-all py-6 text-lg font-bold"
                 disabled={isLoading}
+                className="w-full bg-[#D4AF37] hover:bg-[#C29E30] text-black font-extrabold text-base py-5 mt-2 transition-all duration-300 shadow-lg shadow-[#D4AF37]/10"
               >
-                {isLoading ? "Creando Cuenta..." : "Registrarse"}
+                {isLoading ? "Registrando..." : "Crear Cuenta"}
               </Button>
             </div>
-            <div className="mt-6 flex flex-col gap-3 text-center text-sm text-gray-400">
-              <div>
-                ¿Ya tienes una cuenta?{" "}
-                <Link href="/auth/login" className="text-[#D4AF37] hover:underline underline-offset-4 font-semibold">
-                  Inicia Sesión
-                </Link>
-              </div>
-              <Link href="/" className="text-gray-500 hover:text-white transition-colors">
-                ← Volver al inicio
+            
+            <div className="mt-4 text-center text-sm text-gray-400">
+              ¿Ya tienes una cuenta?{" "}
+              <Link href="/auth/login" className="underline text-[#D4AF37] hover:text-[#C29E30] transition-colors">
+                Inicia sesión
               </Link>
             </div>
           </form>

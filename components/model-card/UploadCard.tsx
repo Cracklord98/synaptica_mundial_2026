@@ -9,20 +9,20 @@ import {
   AlertCircle, 
   CheckCircle, 
   Clock, 
-  Download, 
   ExternalLink 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { uploadModelCard } from "@/lib/actions";
 
 interface ModelCard {
   file_url: string;
   description: string | null;
+  repo_url?: string | null;
   uploaded_at: string;
 }
 
@@ -34,6 +34,7 @@ interface UploadCardProps {
 export default function UploadCard({ userId, initialCard }: UploadCardProps) {
   const [file, setFile] = useState<File | null>(null);
   const [description, setDescription] = useState(initialCard?.description || "");
+  const [repoUrl, setRepoUrl] = useState(initialCard?.repo_url || "");
   const [fileUrl, setFileUrl] = useState(initialCard?.file_url || "");
   const [uploadedAt, setUploadedAt] = useState(initialCard?.uploaded_at || "");
   
@@ -128,7 +129,7 @@ export default function UploadCard({ userId, initialCard }: UploadCardProps) {
       }
 
       // 2. Save reference to DB using Server Action
-      await uploadModelCard(finalUrl, description);
+      await uploadModelCard(finalUrl, description, repoUrl || null);
 
       setFileUrl(finalUrl);
       setUploadedAt(new Date().toISOString());
@@ -239,10 +240,27 @@ export default function UploadCard({ userId, initialCard }: UploadCardProps) {
                   disabled={!isBeforeDeadline}
                   placeholder="Describe brevemente el modelo implementado (ej. Regresión Logística, Algoritmos genéticos, etc.)"
                   rows={4}
-                  className="border-[#1A2B3C] bg-[#0A0A0A] text-white focus:border-[#D4AF37] focus:ring-0 resize-none"
+                  className="border-[#1A2B3C] bg-[#0A0A0A] text-white focus:border-[#D4AF37] focus:ring-0 resize-none text-sm"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
+              </div>
+
+              {/* Repository URL Input */}
+              <div className="space-y-2">
+                <Label htmlFor="repoUrl" className="text-gray-300">Repositorio de Código (GitHub, Notebook, SharePoint, etc.)</Label>
+                <Input
+                  id="repoUrl"
+                  type="url"
+                  disabled={!isBeforeDeadline}
+                  placeholder="https://github.com/mi-usuario/polla-mundial-2026"
+                  className="border-[#1A2B3C] bg-[#0A0A0A] text-white focus:border-[#D4AF37] focus:ring-0 text-sm"
+                  value={repoUrl}
+                  onChange={(e) => setRepoUrl(e.target.value)}
+                />
+                <p className="text-[10px] text-gray-500">
+                  Opcional: Enlace a tu repositorio o código para compartir con los organizadores y jurado.
+                </p>
               </div>
 
               {/* Upload Status & Actions */}
@@ -255,6 +273,16 @@ export default function UploadCard({ userId, initialCard }: UploadCardProps) {
                       <p className="text-xs text-gray-400">
                         Subido el: {new Date(uploadedAt).toLocaleString("es-CO", { dateStyle: "medium", timeStyle: "short" })}
                       </p>
+                      {repoUrl && (
+                        <a 
+                          href={repoUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-xs text-[#00B894] hover:underline flex items-center gap-1 mt-1 font-semibold"
+                        >
+                          <ExternalLink className="h-3 w-3" /> Ver Repositorio de Código
+                        </a>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

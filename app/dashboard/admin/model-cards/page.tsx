@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Download, ExternalLink, Calendar, Users, User } from "lucide-react";
+import { FileText, ExternalLink, Calendar, User, Code } from "lucide-react";
 
 export default async function AdminModelCardsPage() {
   const supabase = await createClient();
@@ -12,6 +12,7 @@ export default async function AdminModelCardsPage() {
       id,
       file_url,
       description,
+      repo_url,
       uploaded_at,
       user:profiles!user_id(username, team_name)
     `)
@@ -27,7 +28,7 @@ export default async function AdminModelCardsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
         {cards?.length === 0 ? (
           <div className="col-span-2 p-12 text-center bg-[#121212] border border-[#1A2B3C] rounded-2xl text-gray-500 text-sm">
-            Ningún equipo ha subido su Ficha Metodológica (Model Card) todavía.
+            Ningún participante ha subido su Ficha Metodológica (Model Card) todavía.
           </div>
         ) : (
           cards?.map((card: any) => (
@@ -35,20 +36,11 @@ export default async function AdminModelCardsPage() {
               <CardHeader className="border-b border-[#1A2B3C]/50 pb-3 flex flex-row justify-between items-start gap-4">
                 <div>
                   <CardTitle className="text-base font-bold text-[#D4AF37] flex items-center gap-1.5">
-                    {card.user?.team_name ? (
-                      <>
-                        <Users className="h-4.5 w-4.5 text-[#00B894]" />
-                        <span>Dupla: {card.user.team_name}</span>
-                      </>
-                    ) : (
-                      <>
-                        <User className="h-4.5 w-4.5 text-gray-400" />
-                        <span>Individual: @{card.user?.username}</span>
-                      </>
-                    )}
+                    <User className="h-4.5 w-4.5 text-[#00B894]" />
+                    <span>{card.user?.team_name || `@${card.user?.username}`}</span>
                   </CardTitle>
                   <CardDescription className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                    <Calendar className="h-3.5 w-3.5" />
+                    <Calendar className="h-3.5 w-3.5 text-slate-500" />
                     <span>
                       Enviado: {new Date(card.uploaded_at).toLocaleString("es-CO", { dateStyle: "medium", timeStyle: "short" })}
                     </span>
@@ -63,12 +55,30 @@ export default async function AdminModelCardsPage() {
                   <ExternalLink className="h-3.5 w-3.5" /> PDF
                 </a>
               </CardHeader>
-              <CardContent className="pt-4 space-y-3">
+              <CardContent className="pt-4 space-y-4">
                 {card.user?.team_name && (
                   <p className="text-xs text-gray-400">
-                    Líder: @{card.user.username}
+                    Usuario: @{card.user.username}
                   </p>
                 )}
+
+                {card.repo_url && (
+                  <div className="bg-[#0A0A0A] p-2.5 rounded border border-[#1A2B3C]/50 flex items-center justify-between gap-4">
+                    <span className="text-xs text-gray-400 flex items-center gap-1">
+                      <Code className="h-3.5 w-3.5 text-gray-400" />
+                      Código / Repositorio:
+                    </span>
+                    <a
+                      href={card.repo_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-[#00B894] hover:underline flex items-center gap-1 font-semibold"
+                    >
+                      <ExternalLink className="h-3 w-3" /> Ver Repositorio
+                    </a>
+                  </div>
+                )}
+
                 <div>
                   <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Descripción de Enfoque</h4>
                   <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">

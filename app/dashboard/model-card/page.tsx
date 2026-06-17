@@ -13,7 +13,7 @@ export default async function ModelCardPage() {
   // Fetch user's existing model card reference if any
   const { data: card } = await supabase
     .from("model_cards")
-    .select("file_url, description, uploaded_at")
+    .select("file_url, description, repo_url, uploaded_at")
     .eq("user_id", user.id)
     .maybeSingle();
 
