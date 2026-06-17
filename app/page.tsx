@@ -198,7 +198,7 @@ export default function Home() {
           variants={fadeUp} 
           className="text-gray-400 text-base sm:text-lg max-w-2xl leading-relaxed"
         >
-          Predice la fase final, compite individualmente o arma tu dupla corporativa y pon a prueba tus modelos predictivos de Inteligencia Artificial para ganar premios sorpresa.
+          Predice la fase final, compite individualmente y pon a prueba tus modelos predictivos de Inteligencia Artificial para ganar premios sorpresa.
         </motion.p>
 
         <motion.div 
@@ -389,12 +389,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl border border-[#1e293b] bg-[#070708]/40">
-            <h4 className="font-bold text-white text-base">¿Cómo funciona la modalidad de Duplas?</h4>
-            <p className="text-sm text-gray-400 mt-2 leading-relaxed">
-              Al registrarte puedes seleccionar la opción de invitar a un compañero. Los dos tendrán el mismo puntaje de equipo y competirán codo a codo en el ranking global.
-            </p>
-          </div>
+
         </div>
       </section>
 

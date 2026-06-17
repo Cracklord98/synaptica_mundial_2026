@@ -16,7 +16,6 @@ import {
   BookOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { acceptDuplaInvitation, rejectDuplaInvitation } from "@/lib/actions";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 
 export const dynamic = "force-dynamic";
@@ -64,23 +63,10 @@ export default async function DashboardLayout({
     { name: "Reglas", href: "/dashboard/rules", icon: BookOpen },
   ];
   
-  const acceptAction = async (id: string) => {
-    "use server";
-    await acceptDuplaInvitation(id);
-  };
-
-  const rejectAction = async (id: string) => {
-    "use server";
-    await rejectDuplaInvitation(id);
-  };
-
   return (
     <DashboardShell
       profile={profile}
       email={user.email || null}
-      pendingInvitation={pendingInvitation}
-      acceptAction={acceptAction}
-      rejectAction={rejectAction}
       signOutAction={handleSignOut}
     >
       {children}
