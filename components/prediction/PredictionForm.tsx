@@ -317,14 +317,14 @@ export default function PredictionForm({
                           </div>
 
                           <CardContent className="p-5 md:p-6 space-y-6">
-                            {/* The Match Row */}
-                            <div className="flex items-center justify-center gap-3 md:gap-8">
-                              {/* Team 1 (Local) */}
-                              <div className="flex flex-col md:flex-row items-center gap-3 w-1/3 text-right justify-end">
-                                <span className="font-bold text-sm md:text-base hidden md:inline">{match.team1?.name || "Clasificado"}</span>
-                                <span className="font-bold text-xs md:hidden block truncate max-w-[75px]">{match.team1?.name || "Clasificado"}</span>
+                            {/* The Match Row - Centered and Balanced */}
+                            <div className="flex items-center justify-center gap-4 max-w-xl mx-auto">
+                              
+                              {/* Team 1 (Local) - Flex End Alignment */}
+                              <div className="flex items-center gap-3 justify-end flex-1 text-right min-w-0">
+                                <span className="font-bold text-sm md:text-base text-white truncate">{match.team1?.name || "Clasificado"}</span>
                                 {match.team1?.flag_url && !match.team1.name.includes("Clasificado") ? (
-                                  <div className="relative w-9 h-6 shrink-0 border border-gray-800 rounded overflow-hidden">
+                                  <div className="relative w-10 h-7 shrink-0 border border-[#1A2B3C] rounded-lg overflow-hidden shadow-sm">
                                     <img
                                       src={match.team1.flag_url}
                                       alt={match.team1.name}
@@ -332,53 +332,65 @@ export default function PredictionForm({
                                     />
                                   </div>
                                 ) : (
-                                  <div className="flex items-center justify-center w-9 h-6 bg-[#1A2B3C] shrink-0 border border-gray-700 rounded text-gray-500 font-bold text-xs">
+                                  <div className="flex items-center justify-center w-10 h-7 bg-[#1A2B3C]/50 shrink-0 border border-[#1A2B3C] rounded-lg text-gray-500 font-bold text-xs">
                                     ?
                                   </div>
                                 )}
                               </div>
 
-                              {/* Score Input Fields */}
-                              <div className="flex items-center gap-2.5 justify-center shrink-0">
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  disabled={isLocked}
-                                  placeholder="0"
-                                  className="w-14 h-12 text-center text-xl font-bold bg-[#0A0A0A] border-[#1A2B3C] text-white focus:border-[#D4AF37] focus:ring-0 disabled:opacity-80"
-                                  value={pred.score_local ?? ""}
-                                  onChange={(e) => handleScoreChange(match.id, "local", e.target.value)}
-                                  onBlur={(e) => {
-                                    // Remove leading zeros on blur
-                                    if (pred.score_local !== undefined) {
-                                      handleScoreChange(match.id, "local", String(pred.score_local));
-                                    }
-                                  }}
-                                />
-                                <span className="text-gray-500 font-bold px-0.5 text-xs uppercase tracking-widest">vs</span>
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  disabled={isLocked}
-                                  placeholder="0"
-                                  className="w-14 h-12 text-center text-xl font-bold bg-[#0A0A0A] border-[#1A2B3C] text-white focus:border-[#D4AF37] focus:ring-0 disabled:opacity-80"
-                                  value={pred.score_visitor ?? ""}
-                                  onChange={(e) => handleScoreChange(match.id, "visitor", e.target.value)}
-                                  onBlur={(e) => {
-                                    // Remove leading zeros on blur
-                                    if (pred.score_visitor !== undefined) {
-                                      handleScoreChange(match.id, "visitor", String(pred.score_visitor));
-                                    }
-                                  }}
-                                />
+                              {/* Score Container (Inputs or Real Results) */}
+                              <div className="flex items-center gap-3 justify-center shrink-0">
+                                {match.is_finished ? (
+                                  /* Match Finished: Show Real Score Comparison */
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-16 h-14 bg-gradient-to-br from-[#00B894]/20 to-[#0A0A0A] border border-[#00B894]/50 rounded-xl flex items-center justify-center text-2xl font-black text-[#00B894]">
+                                      {match.team1_score}
+                                    </div>
+                                    <span className="text-gray-500 font-extrabold text-xs uppercase tracking-widest px-1">FT</span>
+                                    <div className="w-16 h-14 bg-gradient-to-br from-[#00B894]/20 to-[#0A0A0A] border border-[#00B894]/50 rounded-xl flex items-center justify-center text-2xl font-black text-[#00B894]">
+                                      {match.team2_score}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  /* Active or Locked match: Show Input boxes with better size and padding */
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      disabled={isLocked}
+                                      placeholder="0"
+                                      className="w-16 h-14 text-center text-2xl font-extrabold bg-[#0A0A0A] border-[#1A2B3C] text-white focus:border-[#D4AF37] focus:ring-0 disabled:opacity-90 rounded-xl shadow-inner"
+                                      value={pred.score_local ?? ""}
+                                      onChange={(e) => handleScoreChange(match.id, "local", e.target.value)}
+                                      onBlur={(e) => {
+                                        if (pred.score_local !== undefined) {
+                                          handleScoreChange(match.id, "local", String(pred.score_local));
+                                        }
+                                      }}
+                                    />
+                                    <span className="text-gray-600 font-bold px-1 text-xs uppercase tracking-wider">vs</span>
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      disabled={isLocked}
+                                      placeholder="0"
+                                      className="w-16 h-14 text-center text-2xl font-extrabold bg-[#0A0A0A] border-[#1A2B3C] text-white focus:border-[#D4AF37] focus:ring-0 disabled:opacity-90 rounded-xl shadow-inner"
+                                      value={pred.score_visitor ?? ""}
+                                      onChange={(e) => handleScoreChange(match.id, "visitor", e.target.value)}
+                                      onBlur={(e) => {
+                                        if (pred.score_visitor !== undefined) {
+                                          handleScoreChange(match.id, "visitor", String(pred.score_visitor));
+                                        }
+                                      }}
+                                    />
+                                  </div>
+                                )}
                               </div>
 
-                              {/* Team 2 (Visitor) */}
-                              <div className="flex flex-col md:flex-row-reverse items-center gap-3 w-1/3 text-left justify-end md:justify-start">
-                                <span className="font-bold text-sm md:text-base hidden md:inline">{match.team2?.name || "Clasificado"}</span>
-                                <span className="font-bold text-xs md:hidden block truncate max-w-[75px]">{match.team2?.name || "Clasificado"}</span>
+                              {/* Team 2 (Visitor) - Flex Start Alignment */}
+                              <div className="flex items-center gap-3 justify-start flex-1 min-w-0">
                                 {match.team2?.flag_url && !match.team2.name.includes("Clasificado") ? (
-                                  <div className="relative w-9 h-6 shrink-0 border border-gray-800 rounded overflow-hidden">
+                                  <div className="relative w-10 h-7 shrink-0 border border-[#1A2B3C] rounded-lg overflow-hidden shadow-sm">
                                     <img
                                       src={match.team2.flag_url}
                                       alt={match.team2.name}
@@ -386,12 +398,64 @@ export default function PredictionForm({
                                     />
                                   </div>
                                 ) : (
-                                  <div className="flex items-center justify-center w-9 h-6 bg-[#1A2B3C] shrink-0 border border-gray-700 rounded text-gray-500 font-bold text-xs">
+                                  <div className="flex items-center justify-center w-10 h-7 bg-[#1A2B3C]/50 shrink-0 border border-[#1A2B3C] rounded-lg text-gray-500 font-bold text-xs">
                                     ?
                                   </div>
                                 )}
+                                <span className="font-bold text-sm md:text-base text-white truncate">{match.team2?.name || "Clasificado"}</span>
                               </div>
                             </div>
+
+                            {/* Finished Match Stats (User prediction & points display) */}
+                            {match.is_finished && (
+                              <div className="max-w-md mx-auto p-4 bg-[#0A0A0A]/50 border border-[#1A2B3C]/30 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-3">
+                                <div className="text-center sm:text-left">
+                                  <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Tu Pronóstico</span>
+                                  <span className="text-sm font-extrabold text-white">
+                                    {pred.score_local !== undefined && pred.score_visitor !== undefined 
+                                      ? `${pred.score_local} - ${pred.score_visitor}` 
+                                      : "No pronosticado"}
+                                  </span>
+                                </div>
+                                
+                                {(() => {
+                                  if (pred.score_local === undefined || pred.score_visitor === undefined) return null;
+                                  
+                                  // Points calc
+                                  const isExact = pred.score_local === match.team1_score && pred.score_visitor === match.team2_score;
+                                  const realWinner = match.team1_score! > match.team2_score! ? "local" : match.team1_score! < match.team2_score! ? "visitor" : "draw";
+                                  const predWinner = pred.score_local > pred.score_visitor ? "local" : pred.score_local < pred.score_visitor ? "visitor" : "draw";
+                                  const isCorrectResult = realWinner === predWinner;
+                                  const isCorrectWinner = pred.winner_id === match.winner_id;
+                                  
+                                  let points = 0;
+                                  let label = "Resultado Incorrecto";
+                                  let labelColor = "text-red-400 bg-red-950/20 border-red-900/30";
+                                  
+                                  if (isExact) {
+                                    points = 5;
+                                    label = "Marcador Exacto";
+                                    labelColor = "text-[#D4AF37] bg-[#D4AF37]/10 border-[#D4AF37]/30";
+                                  } else {
+                                    if (isCorrectResult) points += 3;
+                                    if (isCorrectWinner && match.winner_id) points += 2;
+                                    
+                                    if (points > 0) {
+                                      label = isCorrectResult && isCorrectWinner ? "Resultado + Clasificado" : isCorrectResult ? "Resultado Ganador" : "Solo Clasificado";
+                                      labelColor = "text-[#00B894] bg-[#00B894]/10 border-[#00B894]/30";
+                                    }
+                                  }
+
+                                  return (
+                                    <div className={`flex items-center gap-2 border px-3 py-1.5 rounded-xl text-xs font-bold ${labelColor}`}>
+                                      <span>{label}</span>
+                                      <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                                      <span>+{points} Puntos</span>
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                            )}
 
                             {/* Winner Selection (Advancing Team) with improved vertical padding */}
                             <div className="flex flex-col items-center gap-3 pt-5 mt-2 border-t border-[#1A2B3C]/30">
