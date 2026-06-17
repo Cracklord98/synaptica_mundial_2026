@@ -232,8 +232,8 @@ export default function PredictionForm({
         />
       )}
 
-      {/* Matches predictions list */}
-      <div className="space-y-6">
+      {/* Matches predictions list grouped by day */}
+      <div className="space-y-10">
         {matches.length === 0 ? (
           <div className="p-8 text-center bg-[#121212] border border-[#1A2B3C] rounded-2xl">
             <AlertCircle className="h-8 w-8 text-[#D4AF37] mx-auto mb-2" />
@@ -241,170 +241,220 @@ export default function PredictionForm({
             <p className="text-xs text-gray-500 mt-1">Los partidos se generarán al finalizar la fase anterior.</p>
           </div>
         ) : (
-          matches.map((match) => {
-            const pred = predictions[match.id] || {};
-            const isLocked = new Date() > new Date(match.deadline) || match.is_finished;
-            const isDraw = pred.score_local !== undefined && pred.score_visitor !== undefined && pred.score_local === pred.score_visitor;
-
-            return (
-              <motion.div
-                key={match.id}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Card className="border-[#1A2B3C] bg-[#121212] text-white overflow-hidden premium-card">
-                  {/* Card Header Status Banner */}
-                  <div className={`px-4 py-2 text-xs font-semibold flex items-center justify-between border-b border-[#1A2B3C] ${
-                    isLocked ? "bg-red-950/20 text-red-400" : "bg-[#00B894]/10 text-[#00B894]"
-                  }`}>
-                    <div className="flex items-center gap-1.5">
-                      {isLocked ? (
-                        <>
-                          <Lock className="h-3.5 w-3.5" />
-                          <span>Predicciones Cerradas</span>
-                        </>
-                      ) : (
-                        <>
-                          <Clock className="h-3.5 w-3.5" />
-                          <span>Abierto para Predicciones</span>
-                        </>
-                      )}
-                    </div>
-                    <span className="text-[10px] text-gray-400">
-                      Cierre: {new Date(match.deadline).toLocaleString("es-CO", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: true,
-                      })}
-                    </span>
-                  </div>
-
-                  <CardContent className="p-6 space-y-6">
-                    {/* The Match Row */}
-                    <div className="flex items-center justify-center gap-4 md:gap-8">
-                      {/* Team 1 (Local) */}
-                      <div className="flex flex-col md:flex-row items-center gap-3 w-1/3 text-right justify-end">
-                        <span className="font-bold text-base md:text-lg hidden md:inline">{match.team1?.name || "Clasificado"}</span>
-                        <span className="font-bold text-sm md:hidden block truncate max-w-[80px]">{match.team1?.name || "Clasificado"}</span>
-                        {match.team1?.flag_url && !match.team1.name.includes("Clasificado") ? (
-                          <div className="relative w-10 h-7 shrink-0 border border-gray-800 rounded overflow-hidden">
-                            <img
-                              src={match.team1.flag_url}
-                              alt={match.team1.name}
-                              className="object-cover w-full h-full"
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-center w-10 h-7 bg-[#1A2B3C] shrink-0 border border-gray-700 rounded text-gray-500 font-bold text-xs">
-                            ?
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Score Input Fields */}
-                      <div className="flex items-center gap-2 justify-center shrink-0">
-                        <Input
-                          type="number"
-                          min="0"
-                          disabled={isLocked}
-                          placeholder="0"
-                          className="w-14 h-12 text-center text-xl font-bold bg-[#0A0A0A] border-[#1A2B3C] text-white focus:border-[#D4AF37] focus:ring-0 disabled:opacity-85"
-                          value={pred.score_local ?? ""}
-                          onChange={(e) => handleScoreChange(match.id, "local", e.target.value)}
-                        />
-                        <span className="text-gray-400 font-bold px-1">vs</span>
-                        <Input
-                          type="number"
-                          min="0"
-                          disabled={isLocked}
-                          placeholder="0"
-                          className="w-14 h-12 text-center text-xl font-bold bg-[#0A0A0A] border-[#1A2B3C] text-white focus:border-[#D4AF37] focus:ring-0 disabled:opacity-85"
-                          value={pred.score_visitor ?? ""}
-                          onChange={(e) => handleScoreChange(match.id, "visitor", e.target.value)}
-                        />
-                      </div>
-
-                      {/* Team 2 (Visitor) */}
-                      <div className="flex flex-col md:flex-row-reverse items-center gap-3 w-1/3 text-left justify-end md:justify-start">
-                        <span className="font-bold text-base md:text-lg hidden md:inline">{match.team2?.name || "Clasificado"}</span>
-                        <span className="font-bold text-sm md:hidden block truncate max-w-[80px]">{match.team2?.name || "Clasificado"}</span>
-                        {match.team2?.flag_url && !match.team2.name.includes("Clasificado") ? (
-                          <div className="relative w-10 h-7 shrink-0 border border-gray-800 rounded overflow-hidden">
-                            <img
-                              src={match.team2.flag_url}
-                              alt={match.team2.name}
-                              className="object-cover w-full h-full"
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-center w-10 h-7 bg-[#1A2B3C] shrink-0 border border-gray-700 rounded text-gray-500 font-bold text-xs">
-                            ?
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Winner Selection (Advancing Team) */}
-                    <div className="flex flex-col items-center gap-2 pt-2 border-t border-[#1A2B3C]/40">
-                      <Label className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
-                        {isDraw ? "Definición (Equipo que Avanza)" : "Clasificado Predicho"}
-                      </Label>
-                      <div className="flex gap-3 mt-1">
-                        <button
-                          type="button"
-                          disabled={isLocked || (pred.score_local !== undefined && pred.score_visitor !== undefined && pred.score_local < pred.score_visitor)}
-                          onClick={() => handleWinnerSelect(match.id, match.team1_id)}
-                          className={`px-4 py-2 rounded-lg border text-xs font-bold transition-all ${
-                            pred.winner_id === match.team1_id
-                              ? "bg-[#D4AF37] text-black border-[#D4AF37] shadow"
-                              : "bg-[#0A0A0A] text-gray-400 border-[#1A2B3C] hover:border-gray-500"
-                          } disabled:opacity-50`}
-                        >
-                          {match.team1?.name || "Local"} avanza
-                        </button>
-                        <button
-                          type="button"
-                          disabled={isLocked || (pred.score_local !== undefined && pred.score_visitor !== undefined && pred.score_local > pred.score_visitor)}
-                          onClick={() => handleWinnerSelect(match.id, match.team2_id)}
-                          className={`px-4 py-2 rounded-lg border text-xs font-bold transition-all ${
-                            pred.winner_id === match.team2_id
-                              ? "bg-[#D4AF37] text-black border-[#D4AF37] shadow"
-                              : "bg-[#0A0A0A] text-gray-400 border-[#1A2B3C] hover:border-gray-500"
-                          } disabled:opacity-50`}
-                        >
-                          {match.team2?.name || "Visitante"} avanza
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Action Panel */}
-                    {!isLocked && (
-                      <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1A2B3C]/40">
-                        {successMatchId === match.id && (
-                          <div className="flex items-center gap-1.5 text-xs text-[#00B894] font-medium bg-[#00B894]/10 py-1.5 px-3 rounded-lg border border-[#00B894]/30 animate-in fade-in duration-300">
-                            <CheckCircle className="h-4 w-4" />
-                            <span>Predicción guardada</span>
-                          </div>
-                        )}
-                        <Button
-                          type="button"
-                          onClick={() => savePredictionForMatch(match.id)}
-                          className="bg-[#D4AF37] hover:bg-[#C29E30] text-black font-bold flex items-center gap-1.5 px-4"
-                          disabled={savingMatchId === match.id}
-                        >
-                          <Save className="h-4 w-4" />
-                          {savingMatchId === match.id ? "Guardando..." : "Guardar Pronóstico"}
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
+          (() => {
+            // Sort matches chronologically
+            const sortedMatches = [...matches].sort(
+              (a, b) => new Date(a.match_datetime).getTime() - new Date(b.match_datetime).getTime()
             );
-          })
+
+            // Group sorted matches by day
+            const groupedMatches: Record<string, Match[]> = {};
+            sortedMatches.forEach((match) => {
+              const date = new Date(match.match_datetime);
+              const dayLabel = date.toLocaleDateString("es-CO", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              });
+              const capitalizedDay = dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1);
+              if (!groupedMatches[capitalizedDay]) {
+                groupedMatches[capitalizedDay] = [];
+              }
+              groupedMatches[capitalizedDay].push(match);
+            });
+
+            return Object.entries(groupedMatches).map(([day, dayMatches]) => (
+              <div key={day} className="space-y-4">
+                {/* Day Header */}
+                <div className="flex items-center gap-2 border-b border-[#1A2B3C]/60 pb-2 pt-2">
+                  <Calendar className="h-4 w-4 text-[#D4AF37]" />
+                  <h3 className="font-extrabold text-sm md:text-base text-gray-200 tracking-wider uppercase">
+                    {day}
+                  </h3>
+                </div>
+
+                {/* Day Matches */}
+                <div className="space-y-5">
+                  {dayMatches.map((match) => {
+                    const pred = predictions[match.id] || {};
+                    const isLocked = new Date() > new Date(match.deadline) || match.is_finished;
+                    const isDraw = pred.score_local !== undefined && pred.score_visitor !== undefined && pred.score_local === pred.score_visitor;
+
+                    return (
+                      <motion.div
+                        key={match.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Card className="border-[#1A2B3C] bg-[#121212]/50 backdrop-blur-sm text-white overflow-hidden premium-card">
+                          {/* Card Header Status Banner */}
+                          <div className={`px-4 py-2 text-xs font-semibold flex items-center justify-between border-b border-[#1A2B3C]/50 ${
+                            isLocked ? "bg-red-950/10 text-red-400" : "bg-[#00B894]/10 text-[#00B894]"
+                          }`}>
+                            <div className="flex items-center gap-1.5">
+                              {isLocked ? (
+                                <>
+                                  <Lock className="h-3.5 w-3.5" />
+                                  <span>Predicciones Cerradas</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Clock className="h-3.5 w-3.5" />
+                                  <span>Abierto para Predicciones</span>
+                                </>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-gray-400 font-mono">
+                              Cierre: {new Date(match.deadline).toLocaleString("es-CO", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: true,
+                              })}
+                            </span>
+                          </div>
+
+                          <CardContent className="p-5 md:p-6 space-y-6">
+                            {/* The Match Row */}
+                            <div className="flex items-center justify-center gap-3 md:gap-8">
+                              {/* Team 1 (Local) */}
+                              <div className="flex flex-col md:flex-row items-center gap-3 w-1/3 text-right justify-end">
+                                <span className="font-bold text-sm md:text-base hidden md:inline">{match.team1?.name || "Clasificado"}</span>
+                                <span className="font-bold text-xs md:hidden block truncate max-w-[75px]">{match.team1?.name || "Clasificado"}</span>
+                                {match.team1?.flag_url && !match.team1.name.includes("Clasificado") ? (
+                                  <div className="relative w-9 h-6 shrink-0 border border-gray-800 rounded overflow-hidden">
+                                    <img
+                                      src={match.team1.flag_url}
+                                      alt={match.team1.name}
+                                      className="object-cover w-full h-full"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-center w-9 h-6 bg-[#1A2B3C] shrink-0 border border-gray-700 rounded text-gray-500 font-bold text-xs">
+                                    ?
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Score Input Fields */}
+                              <div className="flex items-center gap-2.5 justify-center shrink-0">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  disabled={isLocked}
+                                  placeholder="0"
+                                  className="w-14 h-12 text-center text-xl font-bold bg-[#0A0A0A] border-[#1A2B3C] text-white focus:border-[#D4AF37] focus:ring-0 disabled:opacity-80"
+                                  value={pred.score_local ?? ""}
+                                  onChange={(e) => handleScoreChange(match.id, "local", e.target.value)}
+                                  onBlur={(e) => {
+                                    // Remove leading zeros on blur
+                                    if (pred.score_local !== undefined) {
+                                      handleScoreChange(match.id, "local", String(pred.score_local));
+                                    }
+                                  }}
+                                />
+                                <span className="text-gray-500 font-bold px-0.5 text-xs uppercase tracking-widest">vs</span>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  disabled={isLocked}
+                                  placeholder="0"
+                                  className="w-14 h-12 text-center text-xl font-bold bg-[#0A0A0A] border-[#1A2B3C] text-white focus:border-[#D4AF37] focus:ring-0 disabled:opacity-80"
+                                  value={pred.score_visitor ?? ""}
+                                  onChange={(e) => handleScoreChange(match.id, "visitor", e.target.value)}
+                                  onBlur={(e) => {
+                                    // Remove leading zeros on blur
+                                    if (pred.score_visitor !== undefined) {
+                                      handleScoreChange(match.id, "visitor", String(pred.score_visitor));
+                                    }
+                                  }}
+                                />
+                              </div>
+
+                              {/* Team 2 (Visitor) */}
+                              <div className="flex flex-col md:flex-row-reverse items-center gap-3 w-1/3 text-left justify-end md:justify-start">
+                                <span className="font-bold text-sm md:text-base hidden md:inline">{match.team2?.name || "Clasificado"}</span>
+                                <span className="font-bold text-xs md:hidden block truncate max-w-[75px]">{match.team2?.name || "Clasificado"}</span>
+                                {match.team2?.flag_url && !match.team2.name.includes("Clasificado") ? (
+                                  <div className="relative w-9 h-6 shrink-0 border border-gray-800 rounded overflow-hidden">
+                                    <img
+                                      src={match.team2.flag_url}
+                                      alt={match.team2.name}
+                                      className="object-cover w-full h-full"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-center w-9 h-6 bg-[#1A2B3C] shrink-0 border border-gray-700 rounded text-gray-500 font-bold text-xs">
+                                    ?
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Winner Selection (Advancing Team) with improved vertical padding */}
+                            <div className="flex flex-col items-center gap-3 pt-5 mt-2 border-t border-[#1A2B3C]/30">
+                              <Label className="text-[10px] text-gray-400 uppercase tracking-widest font-extrabold">
+                                {isDraw ? "Definición (Equipo que Avanza)" : "Clasificado Predicho"}
+                              </Label>
+                              <div className="flex gap-3 mt-1">
+                                <button
+                                  type="button"
+                                  disabled={isLocked || (pred.score_local !== undefined && pred.score_visitor !== undefined && pred.score_local < pred.score_visitor)}
+                                  onClick={() => handleWinnerSelect(match.id, match.team1_id)}
+                                  className={`px-4 py-2.5 rounded-xl border text-xs font-bold transition-all duration-200 ${
+                                    pred.winner_id === match.team1_id
+                                      ? "bg-[#D4AF37] text-black border-[#D4AF37] shadow-[0_4px_12px_rgba(212,175,55,0.15)]"
+                                      : "bg-[#0A0A0A] text-gray-400 border-[#1A2B3C] hover:border-gray-500"
+                                  } disabled:opacity-50`}
+                                >
+                                  {match.team1?.name || "Local"} avanza
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={isLocked || (pred.score_local !== undefined && pred.score_visitor !== undefined && pred.score_local > pred.score_visitor)}
+                                  onClick={() => handleWinnerSelect(match.id, match.team2_id)}
+                                  className={`px-4 py-2.5 rounded-xl border text-xs font-bold transition-all duration-200 ${
+                                    pred.winner_id === match.team2_id
+                                      ? "bg-[#D4AF37] text-black border-[#D4AF37] shadow-[0_4px_12px_rgba(212,175,55,0.15)]"
+                                      : "bg-[#0A0A0A] text-gray-400 border-[#1A2B3C] hover:border-gray-500"
+                                  } disabled:opacity-50`}
+                                >
+                                  {match.team2?.name || "Visitante"} avanza
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Action Panel */}
+                            {!isLocked && (
+                              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1A2B3C]/30">
+                                {successMatchId === match.id && (
+                                  <div className="flex items-center gap-1.5 text-xs text-[#00B894] font-medium bg-[#00B894]/10 py-1.5 px-3 rounded-lg border border-[#00B894]/30 animate-in fade-in duration-300">
+                                    <CheckCircle className="h-4 w-4" />
+                                    <span>Predicción guardada</span>
+                                  </div>
+                                )}
+                                <Button
+                                  type="button"
+                                  onClick={() => savePredictionForMatch(match.id)}
+                                  className="bg-[#D4AF37] hover:bg-[#C29E30] text-black font-bold flex items-center gap-1.5 px-4 rounded-xl py-5 shadow-lg shadow-[#D4AF37]/10"
+                                  disabled={savingMatchId === match.id}
+                                >
+                                  <Save className="h-4 w-4" />
+                                  {savingMatchId === match.id ? "Guardando..." : "Guardar Pronóstico"}
+                                </Button>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+            ));
+          })()
         )}
       </div>
 
