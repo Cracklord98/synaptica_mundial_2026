@@ -128,6 +128,7 @@ export default function BracketView({ matches, initialPredictions }: BracketView
   const [modalWinnerId, setModalWinnerId] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"bracket" | "grid">("bracket");
 
   // Group matches by round
   const r32 = matches.filter((m) => m.round === "round_32");
@@ -191,16 +192,84 @@ export default function BracketView({ matches, initialPredictions }: BracketView
     } finally {
       setIsSaving(false);
     }
-  };
-
-  // Render a match card
-  const renderMatchCard = (match: Match, isCompact: boolean = false) => {
+  };  // Render a match card
+  const renderMatchCard = (match: Match, mode: "full" | "compact" | "node" = "full") => {
     const pred = predictions[match.id];
     const isLocked = new Date() > new Date(match.deadline) || match.is_finished;
     const isPredicted = !!pred;
 
-    if (isCompact) {
-      // Minified version for mobile
+    // Mode 1: node (Ultra-compact Bracket Node Card for desktop tree)
+    if (mode === "node") {
+      return (
+        <motion.div
+          key={match.id}
+          whileHover={{ scale: isLocked ? 1 : 1.02 }}
+          onClick={() => handleOpenPredictionModal(match)}
+          className={`relative w-52 bg-[#0c102b]/95 border ${
+            isPredicted 
+              ? "border-[#D4AF37]/50 shadow-[0_2px_8px_rgba(212,175,55,0.05)]" 
+              : "border-slate-800"
+          } rounded-xl overflow-hidden cursor-pointer hover:border-[#D4AF37] transition-all duration-200 select-none z-10 flex flex-col justify-center h-[68px]`}
+        >
+          {/* Left indicator bar */}
+          <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+            isLocked ? "bg-red-500/50" : isPredicted ? "bg-[#D4AF37]" : "bg-[#00B894]/70"
+          }`} />
+
+          {/* Body */}
+          <div className="pl-3.5 pr-2.5 py-2 space-y-1">
+            {/* Team 1 */}
+            <div className="flex items-center justify-between gap-2.5 text-[10px]">
+              <div className="flex items-center gap-1.5 truncate max-w-[130px]">
+                {match.team1?.flag_url && !match.team1.name.includes("Clasificado") ? (
+                  <img src={match.team1.flag_url} className="w-5 h-3.5 border border-slate-950/60 rounded-sm object-cover shrink-0" />
+                ) : (
+                  <div className="w-5 h-3.5 bg-slate-900/50 border border-slate-850 rounded-sm flex items-center justify-center text-[7px] text-gray-500 font-bold shrink-0">?</div>
+                )}
+                <span className={`truncate font-semibold ${pred?.winner_id === match.team1_id ? "text-[#D4AF37]" : "text-slate-300"}`}>
+                  {match.team1?.name || "Por definir"}
+                </span>
+              </div>
+              <div className="font-bold shrink-0">
+                {match.is_finished ? (
+                  <span className="text-[#00B894] bg-[#00B894]/10 px-1 rounded">{match.team1_score}</span>
+                ) : isPredicted ? (
+                  <span className="text-white bg-slate-800/80 px-1 rounded">{pred.score_local}</span>
+                ) : (
+                  <span className="text-slate-600 px-0.5">-</span>
+                )}
+              </div>
+            </div>
+
+            {/* Team 2 */}
+            <div className="flex items-center justify-between gap-2.5 text-[10px]">
+              <div className="flex items-center gap-1.5 truncate max-w-[130px]">
+                {match.team2?.flag_url && !match.team2.name.includes("Clasificado") ? (
+                  <img src={match.team2.flag_url} className="w-5 h-3.5 border border-slate-950/60 rounded-sm object-cover shrink-0" />
+                ) : (
+                  <div className="w-5 h-3.5 bg-slate-900/50 border border-slate-850 rounded-sm flex items-center justify-center text-[7px] text-gray-500 font-bold shrink-0">?</div>
+                )}
+                <span className={`truncate font-semibold ${pred?.winner_id === match.team2_id ? "text-[#D4AF37]" : "text-slate-300"}`}>
+                  {match.team2?.name || "Por definir"}
+                </span>
+              </div>
+              <div className="font-bold shrink-0">
+                {match.is_finished ? (
+                  <span className="text-[#00B894] bg-[#00B894]/10 px-1 rounded">{match.team2_score}</span>
+                ) : isPredicted ? (
+                  <span className="text-white bg-slate-800/80 px-1 rounded">{pred.score_visitor}</span>
+                ) : (
+                  <span className="text-slate-600 px-0.5">-</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      );
+    }
+
+    // Mode 2: compact (Mobile Compact Card)
+    if (mode === "compact") {
       return (
         <motion.div
           key={match.id}
@@ -212,7 +281,7 @@ export default function BracketView({ matches, initialPredictions }: BracketView
               : "border-slate-800/80"
           } rounded-xl overflow-hidden cursor-pointer hover:border-[#D4AF37]/60 transition-all duration-200 select-none`}
         >
-          {/* Compact Header: Tiny bar showing open/closed and predicted state */}
+          {/* Compact Header */}
           <div className={`px-2.5 py-1 text-[9px] font-extrabold flex items-center justify-between border-b border-slate-900/60 ${
             isLocked ? "bg-red-950/5 text-red-400" : "bg-[#00B894]/5 text-[#00B894]"
           }`}>
@@ -289,7 +358,7 @@ export default function BracketView({ matches, initialPredictions }: BracketView
       );
     }
 
-    // Desktop (Full) Card Version
+    // Mode 3: full (Desktop Full Card View)
     return (
       <motion.div
         key={match.id}
@@ -382,14 +451,40 @@ export default function BracketView({ matches, initialPredictions }: BracketView
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
-      <div>
-        <h1 className="text-3xl md:text-4xl font-extrabold text-[#D4AF37] flex items-center gap-2">
-          <Trophy className="h-8 w-8 text-[#D4AF37] animate-bounce" />
-          Bracket del Torneo
-        </h1>
-        <p className="text-sm text-gray-400 mt-1.5 max-w-2xl leading-relaxed">
-          Sigue el camino hacia la gran final. Haz clic sobre cualquier partido para ingresar tus predicciones o consultar resultados y puntajes obtenidos.
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-[#D4AF37] flex items-center gap-2">
+            <Trophy className="h-8 w-8 text-[#D4AF37] animate-bounce" />
+            Bracket del Torneo
+          </h1>
+          <p className="text-sm text-gray-400 mt-1.5 max-w-2xl leading-relaxed">
+            Sigue el camino hacia la gran final. Haz clic sobre cualquier partido para ingresar tus predicciones o consultar resultados y puntajes obtenidos.
+          </p>
+        </div>
+
+        {/* View Toggle Mode - Only on Desktop */}
+        <div className="hidden md:flex bg-[#0c102b] p-1.5 rounded-xl border border-slate-800 shrink-0">
+          <button
+            onClick={() => setViewMode("bracket")}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              viewMode === "bracket"
+                ? "bg-[#D4AF37] text-black shadow-md"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            Vista de Llaves (Árbol)
+          </button>
+          <button
+            onClick={() => setViewMode("grid")}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              viewMode === "grid"
+                ? "bg-[#D4AF37] text-black shadow-md"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            Vista por Rondas (Grid)
+          </button>
+        </div>
       </div>
 
       {/* MOBILE VIEW: Tabs + Vertical list */}
@@ -444,7 +539,7 @@ export default function BracketView({ matches, initialPredictions }: BracketView
               }
               return currentMatches.map((m) => (
                 <div key={m.id} className="flex justify-center">
-                  {renderMatchCard(m, true)}
+                  {renderMatchCard(m, "compact")}
                 </div>
               ));
             })()}
@@ -458,142 +553,219 @@ export default function BracketView({ matches, initialPredictions }: BracketView
                 Partido por el Tercer Lugar
               </h3>
               <div className="flex justify-center">
-                {renderMatchCard(thirdPlace, true)}
+                {renderMatchCard(thirdPlace, "compact")}
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* DESKTOP VIEW: Panoramic Bracket Scroll View with Connecting SVGs */}
-      <div className="hidden md:block relative bg-[#050814]/90 border border-slate-800/80 rounded-3xl p-6 overflow-hidden shadow-2xl backdrop-blur-sm">
-        
-        {/* Soft edge gradients indicating horizontal scroll */}
-        <div className="absolute top-0 right-0 bottom-0 w-20 bg-gradient-to-l from-[#050814] to-transparent pointer-events-none z-20" />
-        <div className="absolute top-0 left-0 bottom-0 w-20 bg-gradient-to-r from-[#050814] to-transparent pointer-events-none z-20" />
+      {/* DESKTOP VIEW 1: Panoramic Bracket Scroll View with Connecting SVGs */}
+      {viewMode === "bracket" && (
+        <div className="hidden md:block relative bg-[#050814]/90 border border-slate-800/80 rounded-3xl p-6 overflow-hidden shadow-2xl backdrop-blur-sm">
+          
+          {/* Soft edge gradients indicating horizontal scroll */}
+          <div className="absolute top-0 right-0 bottom-0 w-20 bg-gradient-to-l from-[#050814] to-transparent pointer-events-none z-20" />
+          <div className="absolute top-0 left-0 bottom-0 w-20 bg-gradient-to-r from-[#050814] to-transparent pointer-events-none z-20" />
 
-        <div className="overflow-x-auto pb-4 pt-2 select-none scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
-          <div className="flex gap-0 w-max px-6 h-[880px] relative">
-            
-            {/* Column 1: Round of 32 */}
-            <div className="flex flex-col justify-between h-full w-56 shrink-0 relative">
-              <div className="text-center font-extrabold text-[10px] uppercase tracking-widest text-[#D4AF37] border-b border-slate-800/70 pb-2 mb-4 bg-slate-950/40 py-1 rounded-md h-[28px] flex items-center justify-center">
-                Dieciseisavos (R32)
-              </div>
-              <div className="flex-1 flex flex-col justify-around">
-                {r32.length > 0 ? (
-                  r32.map((m) => renderMatchCard(m))
-                ) : (
-                  Array.from({ length: 16 }).map((_, i) => (
-                    <div key={i} className="w-56 h-20 bg-slate-900/10 border border-dashed border-slate-850 rounded-xl flex items-center justify-center text-slate-600 text-xs">
-                      Partido R32
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Connector 1 */}
-            <RoundConnector fromCount={16} />
-
-            {/* Column 2: Round of 16 */}
-            <div className="flex flex-col justify-between h-full w-56 shrink-0 relative">
-              <div className="text-center font-extrabold text-[10px] uppercase tracking-widest text-[#D4AF37] border-b border-slate-800/70 pb-2 mb-4 bg-slate-950/40 py-1 rounded-md h-[28px] flex items-center justify-center">
-                Octavos de Final
-              </div>
-              <div className="flex-1 flex flex-col justify-around">
-                {r16.length > 0 ? (
-                  r16.map((m) => renderMatchCard(m))
-                ) : (
-                  Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="w-56 h-20 bg-slate-900/10 border border-dashed border-slate-850 rounded-xl flex items-center justify-center text-slate-650 text-xs">
-                      Partido R16
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Connector 2 */}
-            <RoundConnector fromCount={8} />
-
-            {/* Column 3: Quarterfinals */}
-            <div className="flex flex-col justify-between h-full w-56 shrink-0 relative">
-              <div className="text-center font-extrabold text-[10px] uppercase tracking-widest text-[#D4AF37] border-b border-slate-800/70 pb-2 mb-4 bg-slate-950/40 py-1 rounded-md h-[28px] flex items-center justify-center">
-                Cuartos de Final
-              </div>
-              <div className="flex-1 flex flex-col justify-around">
-                {quarters.length > 0 ? (
-                  quarters.map((m) => renderMatchCard(m))
-                ) : (
-                  Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="w-56 h-20 bg-slate-900/10 border border-dashed border-slate-850 rounded-xl flex items-center justify-center text-slate-650 text-xs">
-                      Cuartos
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Connector 3 */}
-            <RoundConnector fromCount={4} />
-
-            {/* Column 4: Semifinals */}
-            <div className="flex flex-col justify-between h-full w-56 shrink-0 relative">
-              <div className="text-center font-extrabold text-[10px] uppercase tracking-widest text-[#D4AF37] border-b border-slate-800/70 pb-2 mb-4 bg-slate-950/40 py-1 rounded-md h-[28px] flex items-center justify-center">
-                Semifinales
-              </div>
-              <div className="flex-1 flex flex-col justify-around">
-                {semis.length > 0 ? (
-                  semis.map((m) => renderMatchCard(m))
-                ) : (
-                  Array.from({ length: 2 }).map((_, i) => (
-                    <div key={i} className="w-56 h-20 bg-slate-900/10 border border-dashed border-slate-850 rounded-xl flex items-center justify-center text-slate-650 text-xs">
-                      Semifinal
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Connector 4 */}
-            <RoundConnector fromCount={2} />
-
-            {/* Column 5: Gran Final & 3rd Place */}
-            <div className="flex flex-col justify-between h-full w-56 shrink-0 relative">
-              <div className="text-center font-extrabold text-[10px] uppercase tracking-widest text-[#D4AF37] border-b border-slate-800/70 pb-2 mb-4 bg-slate-950/40 py-1 rounded-md h-[28px] flex items-center justify-center">
-                Gran Final
-              </div>
+          <div className="overflow-x-auto pb-4 pt-2 select-none scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+            <div className="flex gap-0 w-max px-6 h-[1420px] relative">
               
-              {/* Centered Area for Gran Final Card */}
-              <div className="flex-1 flex flex-col justify-center relative">
-                <div className="flex justify-center">
-                  {finals.length > 0 ? (
-                    finals.map((m) => renderMatchCard(m))
+              {/* Column 1: Round of 32 */}
+              <div className="flex flex-col justify-between h-full w-56 shrink-0 relative">
+                <div className="text-center font-extrabold text-[10px] uppercase tracking-widest text-[#D4AF37] border-b border-slate-800/70 pb-2 mb-4 bg-slate-950/40 py-1 rounded-md h-[28px] flex items-center justify-center">
+                  Dieciseisavos (R32)
+                </div>
+                <div className="flex-1 flex flex-col justify-around py-2">
+                  {r32.length > 0 ? (
+                    r32.map((m) => renderMatchCard(m, "node"))
                   ) : (
-                    <div className="w-56 h-20 bg-slate-900/10 border border-dashed border-slate-850 rounded-xl flex items-center justify-center text-slate-650 text-xs">
-                      Final
+                    Array.from({ length: 16 }).map((_, i) => (
+                      <div key={i} className="w-52 h-[68px] mx-auto bg-slate-900/10 border border-dashed border-slate-850 rounded-xl flex items-center justify-center text-slate-600 text-[10px] font-semibold">
+                        Partido R32
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Connector 1 */}
+              <RoundConnector fromCount={16} />
+
+              {/* Column 2: Round of 16 */}
+              <div className="flex flex-col justify-between h-full w-56 shrink-0 relative">
+                <div className="text-center font-extrabold text-[10px] uppercase tracking-widest text-[#D4AF37] border-b border-slate-800/70 pb-2 mb-4 bg-slate-950/40 py-1 rounded-md h-[28px] flex items-center justify-center">
+                  Octavos de Final
+                </div>
+                <div className="flex-1 flex flex-col justify-around py-2">
+                  {r16.length > 0 ? (
+                    r16.map((m) => renderMatchCard(m, "node"))
+                  ) : (
+                    Array.from({ length: 8 }).map((_, i) => (
+                      <div key={i} className="w-52 h-[68px] mx-auto bg-slate-900/10 border border-dashed border-slate-855 rounded-xl flex items-center justify-center text-slate-655 text-[10px] font-semibold">
+                        Partido R16
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Connector 2 */}
+              <RoundConnector fromCount={8} />
+
+              {/* Column 3: Quarterfinals */}
+              <div className="flex flex-col justify-between h-full w-56 shrink-0 relative">
+                <div className="text-center font-extrabold text-[10px] uppercase tracking-widest text-[#D4AF37] border-b border-slate-800/70 pb-2 mb-4 bg-slate-950/40 py-1 rounded-md h-[28px] flex items-center justify-center">
+                  Cuartos de Final
+                </div>
+                <div className="flex-1 flex flex-col justify-around py-2">
+                  {quarters.length > 0 ? (
+                    quarters.map((m) => renderMatchCard(m, "node"))
+                  ) : (
+                    Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="w-52 h-[68px] mx-auto bg-slate-900/10 border border-dashed border-slate-855 rounded-xl flex items-center justify-center text-slate-655 text-[10px] font-semibold">
+                        Cuartos
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Connector 3 */}
+              <RoundConnector fromCount={4} />
+
+              {/* Column 4: Semifinals */}
+              <div className="flex flex-col justify-between h-full w-56 shrink-0 relative">
+                <div className="text-center font-extrabold text-[10px] uppercase tracking-widest text-[#D4AF37] border-b border-slate-800/70 pb-2 mb-4 bg-slate-950/40 py-1 rounded-md h-[28px] flex items-center justify-center">
+                  Semifinales
+                </div>
+                <div className="flex-1 flex flex-col justify-around py-2">
+                  {semis.length > 0 ? (
+                    semis.map((m) => renderMatchCard(m, "node"))
+                  ) : (
+                    Array.from({ length: 2 }).map((_, i) => (
+                      <div key={i} className="w-52 h-[68px] mx-auto bg-slate-900/10 border border-dashed border-slate-855 rounded-xl flex items-center justify-center text-slate-655 text-[10px] font-semibold">
+                        Semifinal
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Connector 4 */}
+              <RoundConnector fromCount={2} />
+
+              {/* Column 5: Gran Final & 3rd Place */}
+              <div className="flex flex-col justify-between h-full w-56 shrink-0 relative">
+                <div className="text-center font-extrabold text-[10px] uppercase tracking-widest text-[#D4AF37] border-b border-slate-800/70 pb-2 mb-4 bg-slate-950/40 py-1 rounded-md h-[28px] flex items-center justify-center">
+                  Gran Final
+                </div>
+                
+                {/* Centered Area for Gran Final Card */}
+                <div className="flex-1 flex flex-col justify-center relative">
+                  <div className="flex justify-center">
+                    {finals.length > 0 ? (
+                      finals.map((m) => renderMatchCard(m, "node"))
+                    ) : (
+                      <div className="w-52 h-[68px] bg-slate-900/10 border border-dashed border-slate-855 rounded-xl flex items-center justify-center text-slate-655 text-[10px] font-semibold">
+                        Final
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Asymmetric Third Place Match at the bottom */}
+                  {thirdPlace && (
+                    <div className="absolute bottom-10 left-0 right-0 space-y-2">
+                      <div className="text-center font-extrabold text-[9px] uppercase tracking-widest text-[#00B894] border-b border-slate-800/60 pb-1.5 bg-[#00B894]/5 py-0.5 rounded">
+                        Tercer Lugar
+                      </div>
+                      <div className="flex justify-center">
+                        {renderMatchCard(thirdPlace, "node")}
+                      </div>
                     </div>
                   )}
                 </div>
-
-                {/* Asymmetric Third Place Match at the bottom */}
-                {thirdPlace && (
-                  <div className="absolute bottom-4 left-0 right-0 space-y-2">
-                    <div className="text-center font-extrabold text-[9px] uppercase tracking-widest text-[#00B894] border-b border-slate-800/60 pb-1.5 bg-[#00B894]/5 py-0.5 rounded">
-                      Tercer Lugar
-                    </div>
-                    <div className="flex justify-center">
-                      {renderMatchCard(thirdPlace, true)}
-                    </div>
-                  </div>
-                )}
               </div>
-            </div>
 
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* DESKTOP VIEW 2: Spacious Grid View By Round */}
+      {viewMode === "grid" && (
+        <div className="hidden md:block space-y-6">
+          {/* Round Selectors Row */}
+          <div className="flex gap-2 overflow-x-auto pb-2 border-b border-slate-800/60">
+            {ROUND_KEYS.map((key) => {
+              const progress = getProgress(key);
+              const isCompleted = progress.predicted === progress.total && progress.total > 0;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setActiveMobileTab(key)}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-2 ${
+                    activeMobileTab === key
+                      ? "bg-[#D4AF37] text-black border-[#D4AF37] shadow-[0_4px_12px_rgba(212,175,55,0.2)]"
+                      : "bg-[#0c102b]/80 text-slate-400 border-slate-800 hover:text-white"
+                  }`}
+                >
+                  <span>{ROUND_LABELS[key]}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                    activeMobileTab === key
+                      ? "bg-black/15 text-black"
+                      : isCompleted
+                        ? "bg-[#00B894]/20 text-[#00B894]"
+                        : "bg-slate-800 text-slate-450"
+                  }`}>
+                    {progress.predicted}/{progress.total}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* List of active tab matches in 4-column Grid */}
+          <div className="space-y-4">
+            <h3 className="font-extrabold text-sm text-[#D4AF37] uppercase tracking-wider flex items-center gap-2">
+              <span className="w-1.5 h-3 bg-[#D4AF37] rounded-sm" />
+              {ROUND_NAMES[activeMobileTab]}
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+              {(() => {
+                const currentMatches = matches.filter((m) => m.round === activeMobileTab);
+                if (currentMatches.length === 0) {
+                  return (
+                    <div className="col-span-full py-16 text-center bg-[#0c102b]/30 border border-dashed border-slate-800 rounded-2xl">
+                      <AlertCircle className="h-8 w-8 text-slate-600 mx-auto mb-2" />
+                      <p className="text-sm text-slate-450">Aún no se han definido los cruces para esta ronda.</p>
+                    </div>
+                  );
+                }
+                return currentMatches.map((m) => (
+                  <div key={m.id} className="flex justify-center">
+                    {renderMatchCard(m, "full")}
+                  </div>
+                ));
+              })()}
+            </div>
+
+            {/* Third Place Match for Final/Semi tabs */}
+            {(activeMobileTab === "final" || activeMobileTab === "semi") && thirdPlace && (
+              <div className="pt-8 border-t border-slate-800/60 space-y-4">
+                <h3 className="font-extrabold text-sm text-[#00B894] uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-1.5 h-3 bg-[#00B894] rounded-sm" />
+                  Partido por el Tercer Lugar
+                </h3>
+                <div className="flex justify-start">
+                  {renderMatchCard(thirdPlace, "full")}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Prediction Modal Dialog */}
       <Dialog.Root open={selectedMatch !== null} onOpenChange={(open) => !open && setSelectedMatch(null)}>
