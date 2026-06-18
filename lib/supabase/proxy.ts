@@ -48,10 +48,11 @@ export async function updateSession(request: NextRequest) {
   const user = data?.claims;
 
   if (!user) {
-    // Unauthenticated: allow landing and auth pages, redirect everything else
+    // Unauthenticated: allow landing, auth pages and api endpoints, redirect everything else
     if (
       request.nextUrl.pathname !== "/" &&
-      !request.nextUrl.pathname.startsWith("/auth")
+      !request.nextUrl.pathname.startsWith("/auth") &&
+      !request.nextUrl.pathname.startsWith("/api")
     ) {
       const url = request.nextUrl.clone();
       url.pathname = "/auth/login";

@@ -1,6 +1,68 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
+// Disable local TLS validation only in development mode to bypass Windows handshake errors
+if (process.env.NODE_ENV === "development") {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+}
+
+// Explicit mapping between database Match UUIDs (from seed_data.sql) and API Match IDs (from http://worldcup26.ir)
+const MATCH_MAPPING: Record<string, string> = {
+  // Round of 32 (16 matches)
+  "32323232-3232-3232-3232-323232323201": "73",
+  "32323232-3232-3232-3232-323232323202": "75",
+  "32323232-3232-3232-3232-323232323203": "74",
+  "32323232-3232-3232-3232-323232323204": "77",
+  "32323232-3232-3232-3232-323232323205": "76",
+  "32323232-3232-3232-3232-323232323206": "78",
+  "32323232-3232-3232-3232-323232323207": "79",
+  "32323232-3232-3232-3232-323232323208": "80",
+  "32323232-3232-3232-3232-323232323209": "81",
+  "32323232-3232-3232-3232-323232323210": "82",
+  "32323232-3232-3232-3232-323232323211": "83",
+  "32323232-3232-3232-3232-323232323212": "84",
+  "32323232-3232-3232-3232-323232323213": "85",
+  "32323232-3232-3232-3232-323232323214": "87",
+  "32323232-3232-3232-3232-323232323215": "86",
+  "32323232-3232-3232-3232-323232323216": "88",
+
+  // Round of 16 (8 matches)
+  "16161616-1616-1616-1616-161616161601": "90",
+  "16161616-1616-1616-1616-161616161602": "89",
+  "16161616-1616-1616-1616-161616161603": "91",
+  "16161616-1616-1616-1616-161616161604": "92",
+  "16161616-1616-1616-1616-161616161605": "94",
+  "16161616-1616-1616-1616-161616161606": "93",
+  "16161616-1616-1616-1616-161616161607": "96",
+  "16161616-1616-1616-1616-161616161608": "95",
+
+  // Quarterfinals (4 matches)
+  "08080808-0808-0808-0808-080808080801": "97",
+  "08080808-0808-0808-0808-080808080802": "98",
+  "08080808-0808-0808-0808-080808080803": "99",
+  "08080808-0808-0808-0808-080808080804": "100",
+
+  // Semifinals (2 matches)
+  "04040404-0404-0404-0404-040404040401": "101",
+  "04040404-0404-0404-0404-040404040402": "102",
+
+  // Third Place Match
+  "33333333-3333-3333-3333-333333333333": "103",
+
+  // Gran Final
+  "f1f1f1f1-f1f1-f1f1-f1f1-f1f1f1f1f1f1": "104",
+};
+
+// Helper function to convert API date format "MM/DD/YYYY HH:mm" to ISO string assuming Eastern Daylight Time (EDT, UTC-4)
+function parseApiDateToISO(dateStr: string): string {
+  // Format: "MM/DD/YYYY HH:mm" -> "06/28/2026 12:00"
+  const [datePart, timePart] = dateStr.trim().split(/\s+/);
+  const [month, day, year] = datePart.split("/");
+  const [hours, minutes] = timePart.split(":");
+  // Parse assuming EDT (UTC-4) offset, which matches official ET match schedules
+  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T${hours.padStart(2, "0")}:${minutes.padStart(2, "0")}:00-04:00`;
+}
+
 export async function GET(request: Request) {
   // Validate Vercel Cron authorization secret
   const authHeader = request.headers.get("authorization");
@@ -11,10 +73,11 @@ export async function GET(request: Request) {
     return new NextResponse("No Autorizado", { status: 401 });
   }
 
-  // Create Supabase client using environment credentials
+  // Create Supabase client using Service Role Key to bypass RLS policies if available
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    supabaseKey,
     {
       cookies: {
         getAll() { return []; },
@@ -41,12 +104,19 @@ export async function GET(request: Request) {
     }
 
     // 2. Fetch our existing teams to map names to database IDs
-    const { data: dbTeams } = await supabase
+    const { data: dbTeams, error: teamsError } = await supabase
       .from("teams")
       .select("id, name");
+
+    if (teamsError) throw teamsError;
     
-    const teamMap = new Map<string, string>();
-    dbTeams?.forEach(t => teamMap.set(t.name.toLowerCase().trim(), t.id));
+    const teamMap = new Map<string, string>(); // name (lowercase) -> id
+    const teamIdToName = new Map<string, string>(); // id -> name (lowercase)
+    dbTeams?.forEach(t => {
+      const normalized = t.name.toLowerCase().trim();
+      teamMap.set(normalized, t.id);
+      teamIdToName.set(t.id, normalized);
+    });
 
     // Helper to fetch or dynamically insert a team if not present in DB
     async function getOrCreateTeamId(teamName: string): Promise<string> {
@@ -75,128 +145,137 @@ export async function GET(request: Request) {
 
       if (error) throw error;
       teamMap.set(lowerName, newId);
+      teamIdToName.set(newId, lowerName);
       return newId;
     }
 
-    // 3. Fetch all matches in the database ordered chronologically
-    const { data: dbMatches } = await supabase
+    // 3. Fetch all matches in the database
+    const { data: dbMatches, error: matchesError } = await supabase
       .from("matches")
-      .select("*")
-      .order("match_datetime", { ascending: true });
+      .select("*");
 
-    // Filter round_32 matches (the starting knockout round)
-    const r32Matches = dbMatches?.filter(m => m.round === "round_32") || [];
-
-    // Filter and sort API games for Round of 32
-    const apiR32Games = externalGames
-      .filter((g: any) => g.type === "r32" || g.group === "R32")
-      .sort((a: any, b: any) => new Date(a.local_date).getTime() - new Date(b.local_date).getTime());
+    if (matchesError) throw matchesError;
 
     let updatedMatchupCount = 0;
     let updatedScoreCount = 0;
+    let updatedDateCount = 0;
+    let updatedMatchCount = 0;
 
-    // A. Sync Round of 32 Matchups (once group stage ends)
-    for (let i = 0; i < Math.min(r32Matches.length, apiR32Games.length); i++) {
-      const dbMatch = r32Matches[i];
-      const apiGame = apiR32Games[i];
+    const isActualTeam = (name: string) => 
+      name && 
+      !name.includes("Winner") && 
+      !name.includes("Runner-up") && 
+      !name.includes("3rd") && 
+      name !== "TBD" &&
+      name !== "0";
 
-      const homeTeam = apiGame.home_team_name_en;
-      const awayTeam = apiGame.away_team_name_en;
+    // 4. Sincronizar partidos según mapeo explícito de bracket
+    for (const dbMatch of (dbMatches || [])) {
+      const apiId = MATCH_MAPPING[dbMatch.id];
+      if (!apiId) continue;
 
-      // Check if team is a resolved country name (and not a placeholder label)
-      const isActualTeam = (name: string) => 
-        name && 
-        !name.includes("Winner") && 
-        !name.includes("Runner-up") && 
-        !name.includes("3rd") && 
-        name !== "TBD" &&
-        name !== "0";
+      const apiGame = externalGames.find((g: any) => g.id === apiId);
+      if (!apiGame) continue;
 
-      if (isActualTeam(homeTeam) && isActualTeam(awayTeam)) {
-        const homeId = await getOrCreateTeamId(homeTeam);
-        const awayId = await getOrCreateTeamId(awayTeam);
+      const updateData: any = {};
+      let needsUpdate = false;
 
-        if (dbMatch.team1_id !== homeId || dbMatch.team2_id !== awayId) {
-          const { error } = await supabase
-            .from("matches")
-            .update({
-              team1_id: homeId,
-              team2_id: awayId
-            })
-            .eq("id", dbMatch.id);
+      // A. Sync Date and Time (if changed or missing)
+      const apiDateISO = parseApiDateToISO(apiGame.local_date);
+      const matchDatetime = new Date(apiDateISO);
+      const deadline = new Date(matchDatetime.getTime() - 60 * 60 * 1000); // 1 hour before
 
-          if (error) throw error;
-          updatedMatchupCount++;
-        }
-      }
-    }
+      const dbDatetime = dbMatch.match_datetime ? new Date(dbMatch.match_datetime) : null;
+      const dbDeadline = dbMatch.deadline ? new Date(dbMatch.deadline) : null;
 
-    // B. Sync finished match scores for ALL rounds
-    const { data: dbMatchesFresh } = await supabase
-      .from("matches")
-      .select(`
-        *,
-        team1:teams!team1_id(id, name),
-        team2:teams!team2_id(id, name)
-      `);
-
-    for (const dbMatch of (dbMatchesFresh || [])) {
-      // Skip if match is already marked finished or doesn't have teams assigned yet
-      if (dbMatch.is_finished || !dbMatch.team1_id || !dbMatch.team2_id) {
-        continue;
+      if (!dbDatetime || dbDatetime.getTime() !== matchDatetime.getTime() ||
+          !dbDeadline || dbDeadline.getTime() !== deadline.getTime()) {
+        updateData.match_datetime = matchDatetime.toISOString();
+        updateData.deadline = deadline.toISOString();
+        needsUpdate = true;
+        updatedDateCount++;
       }
 
-      const t1Name = dbMatch.team1?.name.toLowerCase().trim();
-      const t2Name = dbMatch.team2?.name.toLowerCase().trim();
+      // B. Sync Teams (Ronda de 32 únicamente, ya que las demás rondas se autopropagan en BD al finalizar partidos)
+      let team1Id = dbMatch.team1_id;
+      let team2Id = dbMatch.team2_id;
 
-      // Find this match in the API games list by matching team names
-      const apiGame = externalGames.find((g: any) => {
-        const home = (g.home_team_name_en || "").toLowerCase().trim();
-        const away = (g.away_team_name_en || "").toLowerCase().trim();
-        return (home === t1Name && away === t2Name) || (home === t2Name && away === t1Name);
-      });
+      if (dbMatch.round === "round_32") {
+        const homeTeamName = apiGame.home_team_name_en;
+        const awayTeamName = apiGame.away_team_name_en;
 
-      if (apiGame && apiGame.finished === "TRUE") {
-        const isHomeTeam1 = (apiGame.home_team_name_en || "").toLowerCase().trim() === t1Name;
-        const score1 = parseInt(isHomeTeam1 ? apiGame.home_score : apiGame.away_score, 10);
-        const score2 = parseInt(isHomeTeam1 ? apiGame.away_score : apiGame.home_score, 10);
+        if (isActualTeam(homeTeamName) && isActualTeam(awayTeamName)) {
+          const homeId = await getOrCreateTeamId(homeTeamName);
+          const awayId = await getOrCreateTeamId(awayTeamName);
 
-        let winnerId = null;
-        if (score1 > score2) {
-          winnerId = dbMatch.team1_id;
-        } else if (score2 > score1) {
-          winnerId = dbMatch.team2_id;
-        } else {
-          // Draw (requires penalty winner name matching)
-          const apiWinnerName = (apiGame.winner || apiGame.winner_team_name || apiGame.winner_name || "").toLowerCase().trim();
-          if (apiWinnerName) {
-            if (apiWinnerName === t1Name) winnerId = dbMatch.team1_id;
-            else if (apiWinnerName === t2Name) winnerId = dbMatch.team2_id;
+          if (dbMatch.team1_id !== homeId || dbMatch.team2_id !== awayId) {
+            team1Id = homeId;
+            team2Id = awayId;
+            updateData.team1_id = homeId;
+            updateData.team2_id = awayId;
+            needsUpdate = true;
+            updatedMatchupCount++;
           }
         }
+      }
 
-        // Update the match result. If winnerId is resolved, mark is_finished = true.
-        // Otherwise, write scores and let the admin choose the shootout winner manually.
+      // C. Sync Finished Match Scores (all rounds)
+      if (apiGame.finished === "TRUE" && !dbMatch.is_finished && team1Id && team2Id) {
+        const t1Name = teamIdToName.get(team1Id);
+        const t2Name = teamIdToName.get(team2Id);
+
+        if (t1Name && t2Name) {
+          const homeScore = parseInt(apiGame.home_score, 10);
+          const awayScore = parseInt(apiGame.away_score, 10);
+
+          const apiHomeName = (apiGame.home_team_name_en || "").toLowerCase().trim();
+          const isHomeTeam1 = apiHomeName === t1Name;
+
+          const score1 = isHomeTeam1 ? homeScore : awayScore;
+          const score2 = isHomeTeam1 ? awayScore : homeScore;
+
+          let winnerId = null;
+          if (score1 > score2) {
+            winnerId = team1Id;
+          } else if (score2 > score1) {
+            winnerId = team2Id;
+          } else {
+            // Shootout winner matching
+            const apiWinnerName = (apiGame.winner || apiGame.winner_team_name || apiGame.winner_name || "").toLowerCase().trim();
+            if (apiWinnerName) {
+              if (apiWinnerName === t1Name) winnerId = team1Id;
+              else if (apiWinnerName === t2Name) winnerId = team2Id;
+            }
+          }
+
+          updateData.team1_score = score1;
+          updateData.team2_score = score2;
+          updateData.winner_id = winnerId;
+          updateData.is_finished = winnerId !== null;
+          needsUpdate = true;
+          updatedScoreCount++;
+        }
+      }
+
+      // Perform single database update query per match if there are changes
+      if (needsUpdate) {
         const { error } = await supabase
           .from("matches")
-          .update({
-            team1_score: score1,
-            team2_score: score2,
-            winner_id: winnerId,
-            is_finished: winnerId !== null
-          })
+          .update(updateData)
           .eq("id", dbMatch.id);
 
         if (error) throw error;
-        updatedScoreCount++;
+        updatedMatchCount++;
       }
     }
 
     return NextResponse.json({ 
       success: true, 
       syncTime: new Date().toISOString(),
+      updatedMatches: updatedMatchCount,
       updatedMatchups: updatedMatchupCount, 
-      updatedScores: updatedScoreCount 
+      updatedScores: updatedScoreCount,
+      updatedDates: updatedDateCount
     });
 
   } catch (err: unknown) {
