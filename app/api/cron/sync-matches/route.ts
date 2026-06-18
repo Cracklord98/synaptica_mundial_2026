@@ -6,6 +6,39 @@ if (process.env.NODE_ENV === "development") {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 }
 
+// Fetch with timeout + exponential backoff retry
+// Returns null (instead of throwing) if all attempts fail, so the cron gracefully degrades
+async function fetchWithRetry(
+  url: string,
+  timeoutMs = 10000,
+  maxRetries = 3
+): Promise<Response | null> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timer);
+      if (res.ok) return res;
+      // Non-2xx response: log and retry
+      console.warn(`[sync-matches] Attempt ${attempt}/${maxRetries} — API status ${res.status}`);
+    } catch (err: unknown) {
+      clearTimeout(timer);
+      const isAbort = err instanceof Error && err.name === "AbortError";
+      console.warn(
+        `[sync-matches] Attempt ${attempt}/${maxRetries} — ${
+          isAbort ? `Timeout after ${timeoutMs}ms` : String(err)
+        }`
+      );
+    }
+    if (attempt < maxRetries) {
+      // Exponential backoff: 2s, 4s before next attempt
+      await new Promise((r) => setTimeout(r, 1000 * 2 ** (attempt - 1)));
+    }
+  }
+  return null; // All attempts exhausted
+}
+
 // Explicit mapping between database Match UUIDs (from seed_data.sql) and API Match IDs (from http://worldcup26.ir)
 const MATCH_MAPPING: Record<string, string> = {
   // Round of 32 (16 matches)
@@ -87,20 +120,38 @@ export async function GET(request: Request) {
   );
 
   try {
-    // 1. Fetch matches from the free worldcup26.ir API
-    const response = await fetch("https://worldcup26.ir/get/games", {
-      next: { revalidate: 60 } // Cache for 1 minute
-    });
+    // 1. Fetch matches from the free worldcup26.ir API (with timeout + retry)
+    const response = await fetchWithRetry("https://worldcup26.ir/get/games");
 
-    if (!response.ok) {
-      throw new Error(`API returned status ${response.status}`);
+    if (!response) {
+      // API is temporarily unavailable — return 200 (not our fault) to avoid false-positive alerts
+      console.warn("[sync-matches] External API unavailable after 3 retries. Skipping sync.");
+      return NextResponse.json({
+        success: true,
+        warning: "API externa no disponible temporalmente. Sincronización omitida.",
+        syncTime: new Date().toISOString(),
+        updatedMatches: 0,
+        updatedMatchups: 0,
+        updatedScores: 0,
+        updatedDates: 0,
+      });
     }
 
     const data = await response.json();
     const externalGames = data.games || data;
 
     if (!Array.isArray(externalGames)) {
-      throw new Error("Formato de respuesta de API inválido");
+      // Unexpected format — degrade gracefully
+      console.warn("[sync-matches] Unexpected API response format:", JSON.stringify(data).slice(0, 200));
+      return NextResponse.json({
+        success: true,
+        warning: "Formato de respuesta de API inesperado. Sincronización omitida.",
+        syncTime: new Date().toISOString(),
+        updatedMatches: 0,
+        updatedMatchups: 0,
+        updatedScores: 0,
+        updatedDates: 0,
+      });
     }
 
     // 2. Fetch our existing teams to map names to database IDs
@@ -264,8 +315,12 @@ export async function GET(request: Request) {
           .update(updateData)
           .eq("id", dbMatch.id);
 
-        if (error) throw error;
-        updatedMatchCount++;
+        if (error) {
+          // Log the individual failure but continue syncing the rest of the matches
+          console.error(`[sync-matches] Error updating match ${dbMatch.id}:`, error.message);
+        } else {
+          updatedMatchCount++;
+        }
       }
     }
 
