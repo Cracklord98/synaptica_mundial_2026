@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import { 
   Search, 
   ShieldCheck, 
-  User,
   Trash2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -16,8 +15,6 @@ import { deleteUserAction } from "@/lib/actions";
 interface Profile {
   id: string;
   username: string;
-  team_name: string | null;
-  partner_id: string | null;
   is_admin: boolean;
   created_at: string;
 }
@@ -34,8 +31,7 @@ export default function AdminUsersTable({ profiles }: AdminUsersTableProps) {
   const filtered = profiles.filter((p) => {
     const term = searchQuery.toLowerCase();
     return (
-      p.username.toLowerCase().includes(term) ||
-      (p.team_name && p.team_name.toLowerCase().includes(term))
+      p.username.toLowerCase().includes(term)
     );
   });
 
@@ -49,8 +45,8 @@ export default function AdminUsersTable({ profiles }: AdminUsersTableProps) {
     try {
       await deleteUserAction(id);
       router.refresh();
-    } catch (err: any) {
-      alert(err.message || "Error al eliminar el participante");
+    } catch (error: unknown) {
+      alert(error instanceof Error ? error.message : "Error al eliminar el participante");
     } finally {
       setDeletingId(null);
     }
@@ -81,7 +77,6 @@ export default function AdminUsersTable({ profiles }: AdminUsersTableProps) {
             <thead className="text-xs uppercase bg-[#0A0A0A] border-b border-[#1A2B3C] text-gray-400">
               <tr>
                 <th className="py-4 px-6">Participante</th>
-                <th className="py-4 px-6">Equipo / Nombre de Polla</th>
                 <th className="py-4 px-6 text-center">Rol</th>
                 <th className="py-4 px-6 text-center">Registro</th>
                 <th className="py-4 px-6 text-center">Acciones</th>
@@ -101,7 +96,7 @@ export default function AdminUsersTable({ profiles }: AdminUsersTableProps) {
             >
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-gray-500">
+                  <td colSpan={4} className="py-8 text-center text-gray-500">
                     No se encontraron participantes.
                   </td>
                 </tr>
@@ -126,21 +121,6 @@ export default function AdminUsersTable({ profiles }: AdminUsersTableProps) {
                           </span>
                         )}
                       </p>
-                    </td>
-
-                    {/* Team Name */}
-                    <td className="py-4 px-6">
-                      {profile.team_name ? (
-                        <div className="flex items-center gap-1 text-xs text-[#00B894] font-medium">
-                          <User className="h-3.5 w-3.5 text-[#00B894]" />
-                          <span>{profile.team_name}</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 text-xs text-gray-500">
-                          <User className="h-3.5 w-3.5 text-gray-500" />
-                          <span>Sin nombre de equipo</span>
-                        </div>
-                      )}
                     </td>
 
                     {/* Role */}

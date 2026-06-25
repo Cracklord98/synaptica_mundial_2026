@@ -3,8 +3,16 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+function revalidateDashboardPaths(paths: string[]) {
+  for (const path of paths) {
+    revalidatePath(path);
+  }
+}
+
 // Helper to check if current user is admin
-async function checkAdmin(supabase: any) {
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+
+async function checkAdmin(supabase: SupabaseClient) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
   const { data: profile } = await supabase
@@ -62,7 +70,7 @@ export async function submitPrediction(
 
   if (error) throw error;
 
-  revalidatePath("/predictions");
+  revalidateDashboardPaths(["/dashboard", "/dashboard/predictions", "/dashboard/bracket"]);
   return { success: true };
 }
 
@@ -102,8 +110,7 @@ export async function submitBonus(
   return { success: true };
 }
 
-// 5. Upload Model Card reference
-export async function uploadModelCard(answers: any, repoUrl: string | null) {
+export async function uploadModelCard(answers: Record<string, unknown>, repoUrl: string | null) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No autenticado");
@@ -130,8 +137,7 @@ export async function uploadModelCard(answers: any, repoUrl: string | null) {
 
   if (error) throw error;
 
-  revalidatePath("/model-card");
-  revalidatePath("/dashboard/model-card");
+  revalidateDashboardPaths(["/dashboard", "/dashboard/model-card"]);
   return { success: true };
 }
 
@@ -168,9 +174,12 @@ export async function updateMatchResult(
 
   if (error) throw error;
 
-  revalidatePath("/admin/matches");
-  revalidatePath("/bracket");
-  revalidatePath("/leaderboard");
+  revalidateDashboardPaths([
+    "/dashboard",
+    "/dashboard/admin/matches",
+    "/dashboard/bracket",
+    "/dashboard/leaderboard",
+  ]);
   return { success: true };
 }
 
@@ -213,8 +222,12 @@ export async function saveTeam(
 
   if (error) throw error;
 
-  revalidatePath("/admin/teams");
-  revalidatePath("/admin/matches");
+  revalidateDashboardPaths([
+    "/dashboard",
+    "/dashboard/admin/teams",
+    "/dashboard/admin/matches",
+    "/dashboard/bracket",
+  ]);
   return { success: true };
 }
 
@@ -231,14 +244,17 @@ export async function deleteTeam(teamId: string) {
 
   if (error) throw error;
 
-  revalidatePath("/admin/teams");
-  revalidatePath("/admin/matches");
+  revalidateDashboardPaths([
+    "/dashboard",
+    "/dashboard/admin/teams",
+    "/dashboard/admin/matches",
+    "/dashboard/bracket",
+  ]);
   return { success: true };
 }
 
 
-// 9. Save Teams Bulk (Scraper / Seed)
-export async function saveTeamsBulk(teams: any[]) {
+export async function saveTeamsBulk(teams: Array<Record<string, unknown>>) {
   const supabase = await createClient();
   const isAdmin = await checkAdmin(supabase);
   if (!isAdmin) throw new Error("Acceso denegado");
@@ -251,8 +267,7 @@ export async function saveTeamsBulk(teams: any[]) {
   return { success: true };
 }
 
-// 10. Save Matches Bulk (Seeding)
-export async function saveMatchesBulk(matches: any[]) {
+export async function saveMatchesBulk(matches: Array<Record<string, unknown>>) {
   const supabase = await createClient();
   const isAdmin = await checkAdmin(supabase);
   if (!isAdmin) throw new Error("Acceso denegado");
@@ -262,6 +277,13 @@ export async function saveMatchesBulk(matches: any[]) {
     .upsert(matches);
 
   if (error) throw error;
+
+  revalidateDashboardPaths([
+    "/dashboard",
+    "/dashboard/admin/matches",
+    "/dashboard/bracket",
+    "/dashboard/leaderboard",
+  ]);
   return { success: true };
 }
 
@@ -287,3 +309,137 @@ export async function deleteUserAction(userId: string) {
   revalidatePath("/dashboard/admin/users");
   return { success: true };
 }
+
+export async function getLiveStandings() {
+  try {
+    const teamsRes = await fetch("https://worldcup26.ir/get/teams", { next: { revalidate: 60 } });
+    const groupsRes = await fetch("https://worldcup26.ir/get/groups", { next: { revalidate: 60 } });
+
+    if (!teamsRes.ok || !groupsRes.ok) {
+      throw new Error("Error fetching standings from API");
+    }
+
+    const teamsData = await teamsRes.json();
+    const groupsData = await groupsRes.json();
+
+    const teamsList = teamsData.teams || teamsData;
+    const groupsList = groupsData.groups || groupsData;
+
+    // Map team ID to team info
+    const teamMap = new Map<string, any>();
+    teamsList.forEach((t: any) => {
+      teamMap.set(String(t.id), t);
+    });
+
+    const thirds: any[] = [];
+    const top2Ids = new Set<string>();
+    
+    const formattedGroups = groupsList.map((g: any) => {
+      const sortedTeams = (g.teams || []).map((t: any, index: number) => {
+        const teamInfo = teamMap.get(String(t.team_id)) || {};
+        return {
+          id: String(t.team_id),
+          name: teamInfo.name_en || "TBD",
+          flag_url: teamInfo.flag || null,
+          position: index + 1,
+          mp: parseInt(t.mp || "0", 10),
+          w: parseInt(t.w || "0", 10),
+          d: parseInt(t.d || "0", 10),
+          l: parseInt(t.l || "0", 10),
+          pts: parseInt(t.pts || "0", 10),
+          gf: parseInt(t.gf || "0", 10),
+          ga: parseInt(t.ga || "0", 10),
+          gd: parseInt(t.gd || "0", 10),
+        };
+      });
+
+      // Sort explicitly just in case
+      sortedTeams.sort((a: any, b: any) => {
+        if (a.pts !== b.pts) return b.pts - a.pts;
+        if (a.gd !== b.gd) return b.gd - a.gd;
+        return b.gf - a.gf;
+      });
+
+      // Update positions after sort
+      sortedTeams.forEach((t: any, idx: number) => {
+        t.position = idx + 1;
+        if (t.position <= 2) {
+          top2Ids.add(t.id);
+        } else if (t.position === 3) {
+          thirds.push({
+            id: t.id,
+            name: t.name,
+            flag_url: t.flag_url,
+            pts: t.pts,
+            gd: t.gd,
+            gf: t.gf,
+            mp: t.mp,
+            w: t.w,
+            d: t.d,
+            l: t.l,
+            groupName: g.name
+          });
+        }
+      });
+
+      return {
+        name: g.name,
+        teams: sortedTeams
+      };
+    });
+
+    // Sort thirds
+    const sortedThirds = thirds.sort((a, b) => {
+      if (a.pts !== b.pts) return b.pts - a.pts;
+      if (a.gd !== b.gd) return b.gd - a.gd;
+      return b.gf - a.gf;
+    });
+
+    // Add rank and check if they qualify
+    const top8ThirdsIds = new Set<string>();
+    const thirdsWithRank = sortedThirds.map((t, index) => {
+      const rank = index + 1;
+      const isQualified = rank <= 8;
+      if (isQualified) {
+        top8ThirdsIds.add(t.id);
+      }
+      return {
+        ...t,
+        rank,
+        isQualified
+      };
+    });
+
+    // We can also flag the teams inside groups as qualified or not
+    const groupsWithStatus = formattedGroups.map((g: any) => {
+      return {
+        ...g,
+        teams: g.teams.map((t: any) => {
+          const isQualified = t.position <= 2 || top8ThirdsIds.has(t.id);
+          const isEliminated = t.position === 4 || (t.position === 3 && !isQualified);
+          return {
+            ...t,
+            isQualified,
+            isEliminated
+          };
+        })
+      };
+    });
+
+    return {
+      success: true,
+      groups: groupsWithStatus,
+      thirds: thirdsWithRank,
+      live: true
+    };
+  } catch (err: any) {
+    console.error("Error fetching live standings:", err);
+    // Fallback to database
+    return {
+      success: false,
+      error: err.message,
+      live: false
+    };
+  }
+}
+

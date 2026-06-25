@@ -17,7 +17,6 @@ import { TrendingUp } from "lucide-react";
 interface LeaderboardEntry {
   user_id: string;
   username: string;
-  team_name: string | null;
   total_points: number;
   r32_points: number;
   r16_points: number;
@@ -88,7 +87,7 @@ export default function ScoreChart({ standings, currentUserId }: ScoreChartProps
     const dataPoint: Record<string, any> = { name: round.label };
 
     usersToPlot.forEach((user) => {
-      const name = user.team_name || `@${user.username}`;
+      const name = `@${user.username}`;
       let cumulativePoints = 0;
 
       if (round.key === "start") {
@@ -149,7 +148,7 @@ export default function ScoreChart({ standings, currentUserId }: ScoreChartProps
                 iconType="circle"
               />
               {usersToPlot.map((user, idx) => {
-                const name = user.team_name || `@${user.username}`;
+                const name = `@${user.username}`;
                 const isSelf = user.user_id === currentUserId;
 
                 return (

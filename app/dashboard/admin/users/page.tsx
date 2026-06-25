@@ -7,7 +7,7 @@ export default async function AdminUsersPage() {
   // Fetch all profiles from the database
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, username, team_name, partner_id, is_admin, created_at")
+    .select("id, username, is_admin, created_at")
     .order("created_at", { ascending: false });
 
   return (

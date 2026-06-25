@@ -24,7 +24,7 @@ export function SignUpForm({
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
-  const [teamName, setTeamName] = useState("");
+
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -49,8 +49,6 @@ export function SignUpForm({
           emailRedirectTo: `${window.location.origin}/dashboard`,
           data: {
             username,
-            team_name: teamName.trim() || null,
-            partner_email: null,
           },
         },
       });
@@ -100,19 +98,7 @@ export function SignUpForm({
                 />
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="teamName" className="text-gray-300">Nombre de Polla / Equipo (Opcional)</Label>
-                <Input
-                  id="teamName"
-                  placeholder="ej. Los Galácticos"
-                  className="border-[#1A2B3C] bg-[#121212] text-white focus:border-[#D4AF37] focus:ring-0"
-                  value={teamName}
-                  onChange={(e) => setTeamName(e.target.value)}
-                />
-                <p className="text-[10px] text-gray-500">
-                  Un nombre personalizado para identificar tus predicciones en el ranking.
-                </p>
-              </div>
+
 
               <div className="grid gap-2">
                 <Label htmlFor="password" className="text-gray-300">Contraseña</Label>

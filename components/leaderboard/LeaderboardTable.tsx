@@ -14,7 +14,6 @@ import { Card, CardContent } from "@/components/ui/card";
 interface LeaderboardEntry {
   user_id: string;
   username: string;
-  team_name: string | null;
   total_points: number;
   exact_count: number;
   r32_points: number;
@@ -35,8 +34,7 @@ export default function LeaderboardTable({ data, currentUserId }: LeaderboardTab
   const filteredData = data.filter((entry) => {
     const term = searchQuery.toLowerCase();
     return (
-      entry.username.toLowerCase().includes(term) ||
-      (entry.team_name && entry.team_name.toLowerCase().includes(term))
+      entry.username.toLowerCase().includes(term)
     );
   });
 
@@ -46,7 +44,7 @@ export default function LeaderboardTable({ data, currentUserId }: LeaderboardTab
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
         <Input
-          placeholder="Buscar participante o equipo..."
+          placeholder="Buscar participante..."
           className="pl-10 border-[#1A2B3C] bg-[#121212] text-white focus:border-[#D4AF37] focus:ring-0 w-full md:max-w-md"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -60,7 +58,7 @@ export default function LeaderboardTable({ data, currentUserId }: LeaderboardTab
             <thead className="text-xs uppercase bg-[#0A0A0A] border-b border-[#1A2B3C] text-gray-400">
               <tr>
                 <th className="py-4 px-6 text-center w-16">Pos</th>
-                <th className="py-4 px-6">Participante / Equipo</th>
+                <th className="py-4 px-6">Participante</th>
                 <th className="py-4 px-6 text-center">R32</th>
                 <th className="py-4 px-6 text-center">R16</th>
                 <th className="py-4 px-6 text-center">4tos</th>
@@ -131,17 +129,7 @@ export default function LeaderboardTable({ data, currentUserId }: LeaderboardTab
                               </span>
                             )}
                           </div>
-                          {entry.team_name ? (
-                            <div className="flex items-center gap-1 text-xs text-[#00B894] mt-0.5 font-medium">
-                              <Users className="h-3 w-3" />
-                              <span>{entry.team_name}</span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
-                              <User className="h-3 w-3" />
-                              <span>Individual</span>
-                            </div>
-                          )}
+
                         </div>
                       </td>
 

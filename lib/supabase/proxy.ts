@@ -48,9 +48,13 @@ export async function updateSession(request: NextRequest) {
   const user = data?.claims;
 
   if (!user) {
-    // Unauthenticated: allow landing, auth pages and api endpoints, redirect everything else
+    // Unauthenticated: allow landing, auth pages, api endpoints and icons, redirect everything else
     if (
       request.nextUrl.pathname !== "/" &&
+      request.nextUrl.pathname !== "/icon" &&
+      request.nextUrl.pathname !== "/favicon.ico" &&
+      request.nextUrl.pathname !== "/opengraph-image.png" &&
+      request.nextUrl.pathname !== "/twitter-image.png" &&
       !request.nextUrl.pathname.startsWith("/auth") &&
       !request.nextUrl.pathname.startsWith("/api")
     ) {

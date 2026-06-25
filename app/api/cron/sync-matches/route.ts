@@ -1,5 +1,19 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { SEED_TEAMS, SEED_MATCHES } from "@/lib/seed-data";
+
+interface ExternalGame {
+  id: string;
+  local_date: string;
+  finished?: string;
+  home_team_name_en?: string;
+  away_team_name_en?: string;
+  home_score?: string;
+  away_score?: string;
+  winner?: string;
+  winner_team_name?: string;
+  winner_name?: string;
+}
 
 // Disable local TLS validation only in development mode to bypass Windows handshake errors
 if (process.env.NODE_ENV === "development") {
@@ -138,7 +152,7 @@ export async function GET(request: Request) {
     }
 
     const data = await response.json();
-    const externalGames = data.games || data;
+    const externalGames: ExternalGame[] = data.games || data;
 
     if (!Array.isArray(externalGames)) {
       // Unexpected format — degrade gracefully
@@ -201,19 +215,42 @@ export async function GET(request: Request) {
     }
 
     // 3. Fetch all matches in the database
-    const { data: dbMatches, error: matchesError } = await supabase
+    let { data: dbMatches, error: matchesError } = await supabase
       .from("matches")
       .select("*");
 
     if (matchesError) throw matchesError;
+
+    // Auto-seed if database matches are empty
+    if (!dbMatches || dbMatches.length === 0) {
+      console.log("[sync-matches] Matches table is empty. Auto-seeding placeholder teams and matches...");
+      
+      const { error: seedTeamsErr } = await supabase
+        .from("teams")
+        .upsert(SEED_TEAMS);
+      if (seedTeamsErr) throw seedTeamsErr;
+
+      const { error: seedMatchesErr } = await supabase
+        .from("matches")
+        .upsert(SEED_MATCHES);
+      if (seedMatchesErr) throw seedMatchesErr;
+
+      console.log("[sync-matches] Seeding completed successfully.");
+      
+      const { data: refetchedMatches, error: refetchErr } = await supabase
+        .from("matches")
+        .select("*");
+      if (refetchErr) throw refetchErr;
+      dbMatches = refetchedMatches;
+    }
 
     let updatedMatchupCount = 0;
     let updatedScoreCount = 0;
     let updatedDateCount = 0;
     let updatedMatchCount = 0;
 
-    const isActualTeam = (name: string) => 
-      name && 
+    const isActualTeam = (name?: string): name is string => 
+      !!name && 
       !name.includes("Winner") && 
       !name.includes("Runner-up") && 
       !name.includes("3rd") && 
@@ -225,10 +262,10 @@ export async function GET(request: Request) {
       const apiId = MATCH_MAPPING[dbMatch.id];
       if (!apiId) continue;
 
-      const apiGame = externalGames.find((g: any) => g.id === apiId);
+      const apiGame = externalGames.find((g) => g.id === apiId);
       if (!apiGame) continue;
 
-      const updateData: any = {};
+      const updateData: Record<string, string | number | boolean | null> = {};
       let needsUpdate = false;
 
       // A. Sync Date and Time (if changed or missing)
@@ -271,11 +308,16 @@ export async function GET(request: Request) {
       }
 
       // C. Sync Finished Match Scores (all rounds)
-      if (apiGame.finished === "TRUE" && !dbMatch.is_finished && team1Id && team2Id) {
+      if (apiGame.finished === "TRUE" && team1Id && team2Id) {
         const t1Name = teamIdToName.get(team1Id);
         const t2Name = teamIdToName.get(team2Id);
 
-        if (t1Name && t2Name) {
+        if (
+          t1Name &&
+          t2Name &&
+          typeof apiGame.home_score === "string" &&
+          typeof apiGame.away_score === "string"
+        ) {
           const homeScore = parseInt(apiGame.home_score, 10);
           const awayScore = parseInt(apiGame.away_score, 10);
 
@@ -303,8 +345,20 @@ export async function GET(request: Request) {
           updateData.team2_score = score2;
           updateData.winner_id = winnerId;
           updateData.is_finished = winnerId !== null;
-          needsUpdate = true;
-          updatedScoreCount++;
+
+          const existingScore1 = dbMatch.team1_score ?? null;
+          const existingScore2 = dbMatch.team2_score ?? null;
+          const existingWinnerId = dbMatch.winner_id ?? null;
+          const resultChanged =
+            !dbMatch.is_finished ||
+            existingScore1 !== score1 ||
+            existingScore2 !== score2 ||
+            existingWinnerId !== winnerId;
+
+          if (resultChanged) {
+            needsUpdate = true;
+            updatedScoreCount++;
+          }
         }
       }
 

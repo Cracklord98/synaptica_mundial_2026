@@ -16,7 +16,7 @@ export default async function AdminModelCardsPage() {
       repo_url,
       uploaded_at,
       answers,
-      user:profiles!user_id(username, team_name)
+      user:profiles!user_id(username)
     `)
     .order("uploaded_at", { ascending: false });
 
@@ -46,7 +46,7 @@ export default async function AdminModelCardsPage() {
                     <div>
                       <CardTitle className="text-base font-bold text-[#D4AF37] flex items-center gap-1.5">
                         <User className="h-4.5 w-4.5 text-[#00B894]" />
-                        <span>{card.user?.team_name || `@${card.user?.username}`}</span>
+                        <span>@{card.user?.username}</span>
                       </CardTitle>
                       <CardDescription className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                         <Calendar className="h-3.5 w-3.5 text-slate-500" />
@@ -67,11 +67,7 @@ export default async function AdminModelCardsPage() {
                     )}
                   </CardHeader>
                   <CardContent className="pt-4 space-y-4">
-                    {card.user?.team_name && (
-                      <p className="text-[10px] text-gray-400">
-                        Usuario: @{card.user.username}
-                      </p>
-                    )}
+
 
                     <div className="space-y-4">
                       {/* Q1 */}
