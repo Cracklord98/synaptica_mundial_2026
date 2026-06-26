@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { formatDisplayName } from "@/lib/utils";
 import { 
   Trophy, 
   Calendar, 
@@ -78,10 +79,10 @@ export default function DashboardShell({
         <div className="p-6 border-b border-[#1e293b]/70 bg-gradient-to-b from-[#1A2B3C]/10 to-transparent">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-[#D4AF37]/15 border border-[#D4AF37]/30 flex items-center justify-center font-extrabold text-[#D4AF37] text-sm shadow-inner shrink-0">
-              {profile.username.substring(0, 2).toUpperCase()}
+              {formatDisplayName(profile.username).substring(0, 2).toUpperCase()}
             </div>
             <div className="truncate">
-              <p className="font-bold text-sm text-white truncate">@{profile.username}</p>
+              <p className="font-bold text-sm text-white truncate">{formatDisplayName(profile.username)}</p>
               <p className="text-xs text-gray-500 truncate">{email}</p>
             </div>
           </div>
@@ -224,7 +225,7 @@ export default function DashboardShell({
 
                 {/* Profile Section */}
                 <div className="p-5 border-b border-[#1e293b]/70 bg-gradient-to-b from-[#1A2B3C]/10 to-transparent">
-                  <p className="font-bold text-sm text-white">@{profile.username}</p>
+                  <p className="font-bold text-sm text-white">{formatDisplayName(profile.username)}</p>
                   <p className="text-xs text-gray-500 truncate mt-0.5">{email}</p>
 
                 </div>

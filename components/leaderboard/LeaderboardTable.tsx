@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatDisplayName } from "@/lib/utils";
 
 interface LeaderboardEntry {
   user_id: string;
@@ -121,7 +122,7 @@ export default function LeaderboardTable({ data, currentUserId }: LeaderboardTab
                         <div className="flex flex-col">
                           <div className="flex items-center gap-1.5">
                             <span className={isCurrentUser ? "text-[#D4AF37]" : "text-white"}>
-                              @{entry.username}
+                              {formatDisplayName(entry.username)}
                             </span>
                             {isCurrentUser && (
                               <span className="text-[10px] bg-[#D4AF37]/10 text-[#D4AF37] px-1.5 py-0.5 rounded font-bold">

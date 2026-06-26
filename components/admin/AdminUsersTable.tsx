@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { deleteUserAction } from "@/lib/actions";
+import { formatDisplayName } from "@/lib/utils";
 
 interface Profile {
   id: string;
@@ -114,7 +115,7 @@ export default function AdminUsersTable({ profiles }: AdminUsersTableProps) {
                     {/* User */}
                     <td className="py-4 px-6">
                       <p className="font-bold text-white flex items-center gap-1.5">
-                        @{profile.username}
+                        {formatDisplayName(profile.username)}
                         {profile.is_admin && (
                           <span title="Administrador">
                             <ShieldCheck className="h-4 w-4 text-[#D4AF37]" />
