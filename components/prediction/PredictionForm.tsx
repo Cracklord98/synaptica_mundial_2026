@@ -363,7 +363,7 @@ export default function PredictionForm({
                                 </>
                               )}
                             </div>
-                            <span className="text-[10px] text-gray-400 font-mono">
+                            <span className="text-[10px] text-gray-400 font-mono" suppressHydrationWarning>
                               Cierre: {new Date(match.deadline).toLocaleString("es-CO", {
                                 day: "2-digit",
                                 month: "2-digit",

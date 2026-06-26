@@ -136,7 +136,7 @@ export default function AdminUsersTable({ profiles }: AdminUsersTableProps) {
                     </td>
 
                     {/* Date */}
-                    <td className="py-4 px-6 text-center text-gray-400 text-xs">
+                    <td className="py-4 px-6 text-center text-gray-400 text-xs" suppressHydrationWarning>
                       {new Date(profile.created_at).toLocaleDateString("es-CO", {
                         day: "2-digit",
                         month: "short",

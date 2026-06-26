@@ -784,7 +784,7 @@ export default function BracketView({ matches, initialPredictions, isAdmin = fal
                     <Dialog.Title className="text-xl font-extrabold text-[#D4AF37]">
                       {ROUND_NAMES[selectedMatch.round]}
                     </Dialog.Title>
-                    <Dialog.Description className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                    <Dialog.Description className="text-xs text-gray-500 mt-1 flex items-center gap-1" suppressHydrationWarning>
                       <Calendar className="h-3.5 w-3.5 text-slate-500" />
                       {new Date(selectedMatch.match_datetime).toLocaleString("es-CO", {
                         dateStyle: "medium",

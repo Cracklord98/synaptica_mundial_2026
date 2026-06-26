@@ -291,7 +291,7 @@ export default function UploadCard({ userId, initialCard, isAdmin = false }: Upl
                     <FileText className="h-8 w-8 text-[#D4AF37] shrink-0" />
                     <div>
                       <p className="font-bold text-sm text-white">Ficha Metodológica Registrada</p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-gray-400" suppressHydrationWarning>
                         Última edición: {new Date(uploadedAt).toLocaleString("es-CO", { dateStyle: "medium", timeStyle: "short" })}
                       </p>
                       {repoUrl && (
