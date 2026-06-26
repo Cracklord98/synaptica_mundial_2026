@@ -291,19 +291,29 @@ export async function GET(request: Request) {
       if (dbMatch.round === "round_32") {
         const homeTeamName = apiGame.home_team_name_en;
         const awayTeamName = apiGame.away_team_name_en;
+        let teamChange = false;
 
-        if (isActualTeam(homeTeamName) && isActualTeam(awayTeamName)) {
+        if (isActualTeam(homeTeamName)) {
           const homeId = await getOrCreateTeamId(homeTeamName);
-          const awayId = await getOrCreateTeamId(awayTeamName);
-
-          if (dbMatch.team1_id !== homeId || dbMatch.team2_id !== awayId) {
+          if (dbMatch.team1_id !== homeId) {
             team1Id = homeId;
-            team2Id = awayId;
             updateData.team1_id = homeId;
-            updateData.team2_id = awayId;
-            needsUpdate = true;
-            updatedMatchupCount++;
+            teamChange = true;
           }
+        }
+
+        if (isActualTeam(awayTeamName)) {
+          const awayId = await getOrCreateTeamId(awayTeamName);
+          if (dbMatch.team2_id !== awayId) {
+            team2Id = awayId;
+            updateData.team2_id = awayId;
+            teamChange = true;
+          }
+        }
+
+        if (teamChange) {
+          needsUpdate = true;
+          updatedMatchupCount++;
         }
       }
 
