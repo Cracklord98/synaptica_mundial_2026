@@ -18,7 +18,8 @@ import {
   Menu,
   X,
   ChevronRight,
-  Users
+  Users,
+  Eye
 } from "lucide-react";
 
 interface Profile {
@@ -50,6 +51,7 @@ export default function DashboardShell({
     { name: "Clasificados", href: "/dashboard/clasificados", icon: Users },
     { name: "Ranking", href: "/dashboard/leaderboard", icon: ListOrdered },
     { name: "Bracket", href: "/dashboard/bracket", icon: Layers },
+    { name: "Tabla de Verdad", href: "/dashboard/truth-table", icon: Eye },
     { name: "Model Card", href: "/dashboard/model-card", icon: Upload },
     { name: "Reglas", href: "/dashboard/rules", icon: BookOpen },
   ];

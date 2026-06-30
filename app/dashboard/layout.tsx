@@ -13,7 +13,8 @@ import {
   Users as UsersIcon,
   Check,
   X,
-  BookOpen
+  BookOpen,
+  Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DashboardShell from "@/components/dashboard/DashboardShell";
@@ -59,6 +60,7 @@ export default async function DashboardLayout({
     { name: "Pronósticos", href: "/dashboard/predictions/round_32", icon: Calendar },
     { name: "Ranking", href: "/dashboard/leaderboard", icon: ListOrdered },
     { name: "Bracket", href: "/dashboard/bracket", icon: Layers },
+    { name: "Tabla de Verdad", href: "/dashboard/truth-table", icon: Eye },
     { name: "Model Card", href: "/dashboard/model-card", icon: Upload },
     { name: "Reglas", href: "/dashboard/rules", icon: BookOpen },
   ];

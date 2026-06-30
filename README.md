@@ -2,13 +2,13 @@
 
 <div align="center">
 
-![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)
-![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript)
-![Vercel](https://img.shields.io/badge/Vercel-Deployed-black?style=for-the-badge&logo=vercel)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-38B2AC?style=for-the-badge&logo=tailwind-css)
+[![Next.js 15](https://img.shields.io/badge/Next.js-15-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-Database-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v3-38B2AC?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Vercel](https://img.shields.io/badge/Vercel-Hosted-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com/)
 
-**Plataforma predictiva corporativa de la Copa Mundial FIFA 2026** para los colaboradores de Synaptica. Predicciones ronda a ronda, bracket visual interactivo, leaderboard en tiempo real y sincronización automática de resultados vía API oficial del torneo.
+**La Polla Mundial 2026 de Synaptica** es una plataforma predictiva corporativa interactiva y automatizada diseñada para la Copa Mundial de la FIFA 2026. Permite a los colaboradores realizar predicciones ronda a ronda, competir individualmente, visualizar el bracket de eliminación en tiempo real, y comparar metodologías de pronóstico a través de un módulo analítico avanzado ("Model Card").
 
 [🌐 App en Producción](https://synaptica-mundial-2026.vercel.app) · [📖 Documentación Técnica](./DOCS.md) · [🚀 Guía de Despliegue](./DEPLOY.md)
 
@@ -16,34 +16,70 @@
 
 ---
 
+## ⚙️ Arquitectura del Sistema
+
+El siguiente diagrama detalla cómo se comunican las distintas capas de la aplicación: el cliente en React/Next.js, el servidor de Vercel Serverless, los servicios externos de sincronización de partidos, y la base de datos Supabase gobernada por políticas de seguridad RLS.
+
+```mermaid
+graph TD
+    subgraph Cliente [Cliente / Navegador]
+        NextJS["Next.js 15 (App Router)"]
+        Tailwind["Tailwind CSS"]
+        Framer["Framer Motion (Animaciones)"]
+        Recharts["Recharts (Gráficos)"]
+    end
+
+    subgraph Backend [Servidor - Vercel Serverless]
+        Actions["Server Actions (Lógica de Negocio)"]
+        CronMatches["API Endpoint: /api/cron/sync-matches"]
+    end
+
+    subgraph Supabase [Base de Datos & Auth]
+        PostgreSQL[("Supabase PostgreSQL")]
+        RLS["Políticas RLS (Seguridad)"]
+        Triggers["Triggers & Funciones BD"]
+        Storage["Storage Buckets (Model Cards)"]
+    end
+
+    subgraph Servicios_Externos [Servicios Externos]
+        API_Mundial["worldcup26.ir (API Resultados)"]
+        CronOrg["cron-job.org (Cron externo cada 15 min)"]
+    end
+
+    Cliente -->|Llamadas Server Actions| Actions
+    Actions -->|Supabase SDK| PostgreSQL
+    Actions -->|Supabase SDK| Storage
+    CronOrg -->|GET Requests + Token| CronMatches
+    CronMatches -->|fetch| API_Mundial
+    CronMatches -->|Supabase Service Role Client| PostgreSQL
+    PostgreSQL -->|Activa| Triggers
+    Triggers -->|Cálculo / Propagación| PostgreSQL
+```
+
+---
+
 ## ✨ Características Principales
 
-| Característica | Descripción |
+| Módulo | Funcionalidad |
 |---|---|
-| 🔐 **Autenticación** | Registro e inicio de sesión seguros via Supabase Auth |
-| 👥 **Modo Individual / Dupla** | Participa solo o en pareja con nombre de equipo único |
-| 🔮 **Predicciones por Ronda** | Predice marcadores y equipo clasificado por cada partido |
-| ⏱️ **Control de Deadlines** | Cierre automático de predicciones 1 hora antes de cada partido |
-| 🏆 **Bracket Visual** | Árbol de eliminación directa interactivo de R32 a la Final |
-| 📊 **Leaderboard en Vivo** | Tabla de posiciones con progresión histórica por ronda (Recharts) |
-| 🤖 **Sincronización Automática** | Cron job cada 15 min actualiza equipos, marcadores y cruces desde la API oficial |
-| 🃏 **Model Card (Pista Analítica)** | Formulario de 7 preguntas para documentar metodologías predictivas con dashboard analítico para el admin |
-| ⚙️ **Panel de Administración** | Gestión de usuarios, equipos, partidos y model cards |
+| 🔐 **Autenticación** | Registro e inicio de sesión seguros vía **Supabase Auth** con validación de correos corporativos. |
+| 👥 **Modo de Juego** | Permite participar de manera **Individual** a nivel corporativo. |
+| 🔮 **Predicciones Dinámicas** | Formulario ronda a ronda para pronosticar marcadores y ganadores de llaves, deshabilitándose automáticamente 1 hora antes de cada partido. |
+| 🏆 **Bracket Interactivo** | Vista visual del árbol de eliminación directa (desde R32 a la Final) con modales interactivos para registrar predicciones y visualizar marcadores reales. |
+| 📊 **Leaderboard en Vivo** | Tabla de clasificaciones en tiempo real que desglosa puntos totales, cantidad de marcadores exactos y evolución de rendimiento por rondas mediante gráficos de **Recharts**. |
+| 🤖 **Sincronización Automática** | Cron job en segundo plano que consume la API oficial del torneo, actualizando equipos clasificados, marcadores y propagación de llaves. |
+| 🃏 **Model Card Analítico** | Formulario metodológico de 7 preguntas técnicas donde los participantes documentan el enfoque de su modelo (Poisson, ML, ELO, Manual), alimentando un dashboard analítico para el administrador. |
+| ⚙️ **Panel de Administración** | Consola exclusiva para gestionar usuarios, forzar sincronizaciones, resolver incidencias de cruces y analizar la distribución de metodologías. |
 
 ---
 
 ## 🛠️ Stack Tecnológico
 
-```
-Frontend:  Next.js 15 (App Router) · TypeScript 5 · Tailwind CSS · Framer Motion · Recharts
-Backend:   Next.js Server Actions · Supabase Edge Functions (triggers) · Vercel Serverless
-Base datos: Supabase (PostgreSQL + RLS + Triggers + Storage)
-Auth:      Supabase Auth (Email/Password)
-Hosting:   Vercel (Frontend + Cron Jobs nativos)
-Cron:      cron-job.org (sincronización cada 15 min, gratuito)
-API:       worldcup26.ir (resultados y calendario oficial del Mundial)
-UI Lib:    shadcn/ui (Radix UI) · Lucide Icons
-```
+- **Frontend**: Next.js 15 (App Router), React 19, TypeScript 5, Tailwind CSS, Lucide Icons, Radix UI (shadcn/ui), Framer Motion.
+- **Backend / API**: Next.js Server Actions, Next.js API Routes.
+- **Base de Datos**: Supabase PostgreSQL, Row Level Security (RLS), Triggers nativos, PostgreSQL Functions.
+- **Autenticación & Almacenamiento**: Supabase Auth, Supabase Storage (para archivos y recursos de Model Cards).
+- **Integraciones y Automatización**: API `worldcup26.ir` y servicio de disparo cron job `cron-job.org`.
 
 ---
 
@@ -51,171 +87,111 @@ UI Lib:    shadcn/ui (Radix UI) · Lucide Icons
 
 ```
 synaptica_mundial_2026/
-├── app/                          # Next.js App Router
+├── app/                          # Rutas y páginas de Next.js (App Router)
 │   ├── api/
 │   │   └── cron/
-│   │       ├── sync-matches/     # 🤖 Sincronización automática (Cron principal)
-│   │       └── update-standings/ # 📊 Actualización de clasificaciones
-│   ├── auth/                     # Páginas de autenticación
-│   │   ├── login/
-│   │   ├── sign-up/
-│   │   ├── confirm/
-│   │   └── ...
-│   └── dashboard/                # Aplicación principal (requiere auth)
-│       ├── page.tsx              # Dashboard principal con stats
-│       ├── bracket/              # Vista del árbol de eliminación
-│       ├── predictions/[round]/  # Predicciones por ronda
-│       ├── leaderboard/          # Tabla de posiciones
-│       ├── model-card/           # Ficha metodológica del usuario
-│       ├── rules/                # Reglamento de la polla
-│       └── admin/                # Panel de administración
-│           ├── matches/          # Gestión de partidos y marcadores
-│           ├── teams/            # Gestión de equipos
-│           ├── users/            # Gestión de participantes
-│           └── model-cards/      # Visualización analítica de fichas
-│
+│   │       ├── sync-matches/     # 🤖 Sincronización automática de resultados
+│   │       └── update-standings/ # 📊 Sincronización de estadísticas de grupos
+│   ├── auth/                     # Flujo de login, registro e inicio de sesión
+│   └── dashboard/                # Aplicación protegida principal
+│       ├── bracket/              # Visualizador del árbol de eliminación
+│       ├── predictions/[round]/  # Formularios de predicciones por ronda
+│       ├── leaderboard/          # Tabla de posiciones y gráficos
+│       ├── model-card/           # Formulario analítico del usuario
+│       └── admin/                # Panel de administración (usuarios, equipos, partidos)
 ├── components/                   # Componentes React reutilizables
-│   ├── admin/                    # Componentes del panel admin
-│   ├── bracket/                  # Bracket visual interactivo
-│   ├── dashboard/                # Shell y gráficos del dashboard
-│   ├── leaderboard/              # Tabla de posiciones
-│   ├── model-card/               # Formulario de ficha metodológica
-│   └── prediction/               # Formularios de predicción
-│
-├── lib/
-│   ├── actions.ts                # Server Actions (lógica de negocio)
-│   ├── utils.ts                  # Utilidades compartidas
+│   ├── admin/                    # Formularios y listados de administración
+│   ├── bracket/                  # Nodos y conectores visuales del bracket
+│   ├── dashboard/                # Estadísticas rápidas y contenedores de shell
+│   ├── leaderboard/              # Tablas y gráficos de rendimiento (Recharts)
+│   └── prediction/               # Inputs de predicción y validación de plazos
+├── lib/                          # Funciones auxiliares y lógica del servidor
+│   ├── actions.ts                # Server Actions documentadas con JSDoc
+│   ├── utils.ts                  # Helpers de clases CSS y formateo
 │   └── supabase/
-│       ├── client.ts             # Cliente Supabase (browser)
-│       ├── server.ts             # Cliente Supabase (server-side)
-│       └── proxy.ts              # Middleware de sesión y auth routing
-│
-├── supabase/
-│   └── migrations/
-│       ├── 20260616000000_init_schema.sql        # Esquema de tablas, RLS y funciones
-│       ├── 20260616000001_seed_data.sql           # Equipos y bracket inicial
-│       ├── 20260616000002_remove_payment_columns.sql
-│       ├── 20260617000000_admin_delete_users.sql
-│       └── 20260617000001_winner_propagation.sql  # Trigger de propagación de ganadores
-│
-├── vercel.json                   # Configuración de Cron Jobs nativos de Vercel
-├── .env.local                    # Variables de entorno (NO commitear)
-├── DEPLOY.md                     # Guía completa de despliegue
-└── DOCS.md                       # Documentación técnica completa
+│       ├── client.ts             # Cliente Supabase del lado del cliente
+│       ├── server.ts             # Instancia Supabase para operaciones del servidor
+│       └── proxy.ts              # Middleware para control de cookies y RLS
+├── supabase/                     # Recursos y migraciones de Base de Datos
+│   └── migrations/               # Scripts SQL de tablas, triggers y RLS
+├── vercel.json                   # Configuración del servidor Vercel y crons nativos
+└── DEPLOY.md / DOCS.md           # Guías exhaustivas de despliegue y documentación técnica
 ```
 
 ---
 
 ## ⚡ Inicio Rápido (Desarrollo Local)
 
-### Pre-requisitos
-- Node.js ≥ 18
-- Cuenta en [Supabase](https://supabase.com) con proyecto activo
-- Variables de entorno configuradas
+### 1. Pre-requisitos
+Asegúrate de contar con:
+- **Node.js** v18 o superior instalado.
+- Un proyecto activo en [Supabase](https://supabase.com).
 
-### Instalación
-
+### 2. Clonación e Instalación
 ```bash
-# 1. Clonar el repositorio
+# Clonar el proyecto
 git clone https://github.com/Cracklord98/synaptica_mundial_2026.git
 cd synaptica_mundial_2026
 
-# 2. Instalar dependencias
+# Instalar dependencias
 npm install
-
-# 3. Configurar variables de entorno
-cp .env.example .env.local
-# Edita .env.local con tus credenciales de Supabase
 ```
 
-### Variables de Entorno
-
-```env
-# .env.local
-
-# Supabase (requeridas)
-NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
-
-# Seguridad del Cron Job (requerida en producción)
-CRON_SECRET=tu_clave_secreta_cron_2026
-
-# Supabase Admin (requerida para que el cron job bypasee RLS)
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...
-```
-
-### Inicialización de la Base de Datos
-
-Ejecuta los scripts en Supabase SQL Editor en orden:
-
+### 3. Configuración de Variables de Entorno
+Copia el archivo de ejemplo y rellena con tus credenciales de Supabase:
 ```bash
-# 1. Esquema de tablas, triggers y políticas RLS
-supabase/migrations/20260616000000_init_schema.sql
-
-# 2. Datos semilla: 32 equipos + bracket completo
-supabase/migrations/20260616000001_seed_data.sql
-
-# 3. Ajustes adicionales
-supabase/migrations/20260616000002_remove_payment_columns.sql
-supabase/migrations/20260617000000_admin_delete_users.sql
-supabase/migrations/20260617000001_winner_propagation.sql
+cp .env.example .env.local
+```
+Edita `.env.local`:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=tu-clave-anonima-publica
+SUPABASE_SERVICE_ROLE_KEY=tu-clave-service-role-privada
+CRON_SECRET=tu-secreto-de-seguridad-para-el-cron
 ```
 
-### Ejecutar en Modo Desarrollo
+### 4. Configurar la Base de Datos
+Ingresa al SQL Editor de tu proyecto en Supabase y ejecuta los archivos de migración ubicados en `supabase/migrations/` en orden correlativo:
+1. `20260616000000_init_schema.sql` (Crea el esquema base, tablas y políticas RLS).
+2. `20260616000001_seed_data.sql` (Crea los 32 equipos y mapea la estructura de llaves inicial).
+3. Ejecuta las migraciones adicionales de corrección (`...payment_columns`, `...delete_users`, `...winner_propagation`).
 
+### 5. Iniciar Servidor de Desarrollo
 ```bash
 npm run dev
-# App disponible en http://localhost:3000
 ```
-
----
-
-## 🤖 Sistema de Sincronización Automática
-
-La aplicación se sincroniza con la API oficial del Mundial cada 15 minutos a través de `cron-job.org`:
-
-```
-cron-job.org  →  (GET + Bearer Token)  →  Vercel  →  worldcup26.ir API
-                                              ↓
-                                         Supabase DB
-                                      (matches, teams)
-                                              ↓
-                               Triggers automáticos en PostgreSQL
-                                  (propagación + puntuación)
-```
-
-**Endpoint:** `GET /api/cron/sync-matches`  
-**Seguridad:** Header `Authorization: Bearer <CRON_SECRET>`  
-**Frecuencia:** Cada 15 minutos via cron-job.org + 1 vez/día via Vercel native cron
-
-Ver documentación completa en [DOCS.md → Sección 3: API](./DOCS.md).
+La aplicación estará disponible en [http://localhost:3000](http://localhost:3000).
 
 ---
 
 ## 📊 Sistema de Puntuación
 
-| Evento | Puntos |
-|---|---|
-| Marcador exacto (ej: 2-1 predicho y 2-1 real) | **5 pts** |
-| Resultado correcto (ganador o empate acertado) | **3 pts** |
-| Equipo clasificante correcto | **+2 pts** adicionales |
-| Predicción incorrecta | **0 pts** |
+Las predicciones se puntúan automáticamente al finalizar cada partido basándose en la siguiente tabla:
 
-El desempate en el Leaderboard se resuelve por: mayor número de marcadores exactos → mayor puntaje acumulado en la Final.
+| Acierto Realizado | Puntos Obtenidos |
+|---|---|
+| **Marcador Exacto** (ej: predice 2-1 y el partido finaliza 2-1) | **5 Puntos** |
+| **Resultado Correcto** (ej: predice victoria local y el partido finaliza 1-0) | **3 Puntos** |
+| **Clasificado Correcto** (independiente del marcador, acierta quién avanza de ronda) | **+2 Puntos** adicionales |
+| **Ningún acierto** | **0 Puntos** |
+
+*Ejemplo*: Si predices un empate `1-1` con el local avanzando en penales, y el partido queda `1-1` pero avanza el visitante, obtienes **5 puntos** por marcador exacto pero **0 puntos** por el clasificado (Total = 5 pts).
+
+### Desempate en el Leaderboard
+Si dos participantes empatan en puntaje acumulado, la posición se desempata bajo los siguientes criterios:
+1. Mayor cantidad de marcadores exactos acertados (`exact_count`).
+2. Mayor puntaje obtenido específicamente en la ronda **Final** (`final_points`).
 
 ---
 
-## 🔒 Seguridad
+## 🔒 Seguridad y Privacidad
 
-- **Row Level Security (RLS)** habilitado en todas las tablas de Supabase.
-- Las predicciones son **privadas** hasta que vence el deadline del partido.
-- Solo usuarios con `is_admin = true` pueden modificar equipos, partidos y ver todas las predicciones.
-- Los administradores **no pueden** realizar predicciones ni aparecer en el Leaderboard.
-- El endpoint de cron está protegido por `CRON_SECRET` enviado como Bearer Token.
+- **Seguridad RLS (Row Level Security)**: Todas las tablas en Supabase restringen el acceso para evitar que los usuarios lee las predicciones de sus rivales antes de que el partido comience.
+- **Deadlines Estrictos**: Las mutaciones de predicciones se rechazan a nivel base de datos y a nivel servidor una vez que el reloj supera la hora de cierre del partido.
+- **Aislamiento de Administradores**: Los usuarios con privilegios de administrador (`is_admin = true`) no participan en la polla, no tienen predicciones activas ni se muestran en las clasificaciones para garantizar la transparencia.
 
 ---
 
 ## 👥 Contribución y Contacto
 
-Proyecto interno de **Synaptica**. Para reportar errores o sugerir mejoras, abre un Issue en el repositorio de GitHub.
-
+Este es un desarrollo exclusivo e interno para los colaboradores de **Synaptica**. Para reporte de bugs, sugerencias o soporte en la plataforma, por favor abre un Issue en este repositorio o contacta al administrador del sistema.

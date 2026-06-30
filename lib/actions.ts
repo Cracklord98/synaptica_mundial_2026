@@ -3,15 +3,28 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+/**
+ * Revalidates cache paths to update the Next.js cache and ensure
+ * clients receive fresh data on the dashboard pages.
+ * 
+ * @param paths Array of absolute Next.js routes to revalidate
+ */
 function revalidateDashboardPaths(paths: string[]) {
   for (const path of paths) {
     revalidatePath(path);
   }
 }
 
-// Helper to check if current user is admin
+// Helper type for Supabase clients configured server-side
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
+/**
+ * Checks whether the currently authenticated user has administrator privileges.
+ * Queries the `public.profiles` table to retrieve the user's role status.
+ * 
+ * @param supabase Authenticated server-side Supabase client
+ * @returns Promise resolving to `true` if the user is an admin, `false` otherwise
+ */
 async function checkAdmin(supabase: SupabaseClient) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
@@ -23,7 +36,23 @@ async function checkAdmin(supabase: SupabaseClient) {
   return !!profile?.is_admin;
 }
 
-// 3. Submit Prediction
+/**
+ * Submits or updates a prediction for a specific tournament match.
+ * 
+ * Business Logic & Constraints:
+ * - The user must be authenticated.
+ * - Administrators are forbidden from submitting predictions.
+ * - Predictions cannot be submitted after the match deadline (1 hour before match time).
+ * - Match scores must be non-negative integers.
+ * 
+ * @param matchId Unique identifier (UUID) of the match to predict
+ * @param scoreLocal Predicted goals for the local (home) team
+ * @param scoreVisitor Predicted goals for the visitor (away) team
+ * @param winnerId Predicted team identifier to advance to the next round
+ * @returns Success response object
+ * @throws Error if unauthenticated, if the user is an admin, if the match doesn't exist,
+ *         if the deadline has passed, or if inputs are invalid.
+ */
 export async function submitPrediction(
   matchId: string,
   scoreLocal: number,
@@ -74,7 +103,20 @@ export async function submitPrediction(
   return { success: true };
 }
 
-// 4. Submit Bonus Predictions
+/**
+ * Submits or updates the special pre-tournament bonus predictions.
+ * 
+ * Business Logic & Constraints:
+ * - The user must be authenticated.
+ * - Administrators are forbidden from predicting bonus questions.
+ * - Submissions are only permitted before the tournament starts (June 28, 2026).
+ * 
+ * @param championId Predicted tournament champion team UUID
+ * @param finalist1Id Predicted tournament finalist 1 team UUID
+ * @param finalist2Id Predicted tournament finalist 2 team UUID
+ * @returns Success response object
+ * @throws Error if unauthenticated, if the user is an admin, or if the bonus deadline has passed.
+ */
 export async function submitBonus(
   championId: string,
   finalist1Id: string,
@@ -110,6 +152,19 @@ export async function submitBonus(
   return { success: true };
 }
 
+/**
+ * Submits or updates the prediction methodology card (Model Card) for the analytic track.
+ * 
+ * Business Logic & Constraints:
+ * - The user must be authenticated.
+ * - Administrators do not participate in the analytic track.
+ * - Submission deadline is July 17, 2026.
+ * 
+ * @param answers Structured response map containing responses to the 7 analytic questions
+ * @param repoUrl Optional URL link to code repository or notebook used for calculations
+ * @returns Success response object
+ * @throws Error if unauthenticated, if the user is an admin, or if the deadline has passed.
+ */
 export async function uploadModelCard(answers: Record<string, unknown>, repoUrl: string | null) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -146,7 +201,23 @@ export async function uploadModelCard(answers: Record<string, unknown>, repoUrl:
 // ADMIN ACTIONS
 // ==========================================
 
-// 7. Update Match Result (Admin)
+/**
+ * Updates a match result (Admin action).
+ * 
+ * When `isFinished` is set to `true`, the Supabase database triggers `on_match_finished`
+ * (calculating points for all predictors) and `on_match_winner_propagation` (populating
+ * the next bracket node with the winner).
+ * 
+ * @param matchId Unique match identifier UUID
+ * @param team1Id Team 1 (local) identifier UUID, or null
+ * @param team2Id Team 2 (visitor) identifier UUID, or null
+ * @param team1Score Real goals scored by team 1, or null
+ * @param team2Score Real goals scored by team 2, or null
+ * @param winnerId Real winner identifier UUID (required if match finished), or null
+ * @param isFinished Whether the match has officially finished
+ * @returns Success response object
+ * @throws Error if the user does not have administrator privileges.
+ */
 export async function updateMatchResult(
   matchId: string,
   team1Id: string | null,
@@ -183,7 +254,19 @@ export async function updateMatchResult(
   return { success: true };
 }
 
-// 7.5. Save Team (Admin)
+/**
+ * Creates or updates a team profile in the database (Admin action).
+ * 
+ * @param teamId Unique team identifier UUID (null to insert a new team)
+ * @param name Spanish team name
+ * @param flagUrl Public URL containing flag image
+ * @param groupName Group character ('A' through 'L')
+ * @param positionInGroup Ranking within the group (1 to 4), or null
+ * @param isQualified Whether the team qualified for the knockout stage
+ * @param eliminated Whether the team has been eliminated
+ * @returns Success response object
+ * @throws Error if the user does not have administrator privileges.
+ */
 export async function saveTeam(
   teamId: string | null,
   name: string,
@@ -231,7 +314,13 @@ export async function saveTeam(
   return { success: true };
 }
 
-// 7.7. Delete Team (Admin)
+/**
+ * Deletes a team from the database (Admin action).
+ * 
+ * @param teamId Unique team identifier UUID
+ * @returns Success response object
+ * @throws Error if the user does not have administrator privileges.
+ */
 export async function deleteTeam(teamId: string) {
   const supabase = await createClient();
   const isAdmin = await checkAdmin(supabase);
@@ -253,7 +342,14 @@ export async function deleteTeam(teamId: string) {
   return { success: true };
 }
 
-
+/**
+ * Upserts multiple teams in bulk into the database (Admin action).
+ * Used mainly by initial database seeding scripts.
+ * 
+ * @param teams Array of team objects to upsert
+ * @returns Success response object
+ * @throws Error if the user does not have administrator privileges.
+ */
 export async function saveTeamsBulk(teams: Array<Record<string, unknown>>) {
   const supabase = await createClient();
   const isAdmin = await checkAdmin(supabase);
@@ -267,6 +363,13 @@ export async function saveTeamsBulk(teams: Array<Record<string, unknown>>) {
   return { success: true };
 }
 
+/**
+ * Upserts multiple matches in bulk into the database (Admin action).
+ * 
+ * @param matches Array of match objects to upsert
+ * @returns Success response object
+ * @throws Error if the user does not have administrator privileges.
+ */
 export async function saveMatchesBulk(matches: Array<Record<string, unknown>>) {
   const supabase = await createClient();
   const isAdmin = await checkAdmin(supabase);
@@ -287,7 +390,14 @@ export async function saveMatchesBulk(matches: Array<Record<string, unknown>>) {
   return { success: true };
 }
 
-// 11. Delete Participant (Admin tool)
+/**
+ * Deletes a participant's profile from the database (Admin action).
+ * Admins cannot delete their own profile.
+ * 
+ * @param userId Unique user/profile identifier UUID to delete
+ * @returns Success response object
+ * @throws Error if the user is unauthenticated, not an admin, or attempts self-deletion.
+ */
 export async function deleteUserAction(userId: string) {
   const supabase = await createClient();
   const isAdmin = await checkAdmin(supabase);
@@ -310,6 +420,15 @@ export async function deleteUserAction(userId: string) {
   return { success: true };
 }
 
+/**
+ * Fetches and processes live tournament group standings from the external World Cup API.
+ * 
+ * It sorts teams by points, goal difference, and goals scored, identifies the top 2
+ * qualifiers from each group, and calculates the top 8 best third-place teams that
+ * qualify for the Round of 32. If the API fails, it falls back to database error info.
+ * 
+ * @returns Standings data object containing groups with qualification status and ranked third-place list
+ */
 export async function getLiveStandings() {
   try {
     const teamsRes = await fetch("https://worldcup26.ir/get/teams", { next: { revalidate: 60 } });
@@ -442,4 +561,5 @@ export async function getLiveStandings() {
     };
   }
 }
+
 

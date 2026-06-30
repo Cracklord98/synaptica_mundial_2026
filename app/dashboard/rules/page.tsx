@@ -61,7 +61,7 @@ export default function RulesPage() {
                 <div className="flex justify-between items-center p-3 rounded-lg bg-[#1A2B3C]/20 border border-[#1A2B3C]">
                   <div className="flex flex-col">
                     <span className="font-semibold text-white">Marcador Exacto</span>
-                    <span className="text-xs text-gray-400">En 90 minutos (incluye pts por resultado)</span>
+                    <span className="text-xs text-gray-400">Acierto del marcador exacto de goles (se suma al resultado)</span>
                   </div>
                   <span className="text-xl font-bold text-[#D4AF37]">+5 pts</span>
                 </div>
@@ -69,7 +69,7 @@ export default function RulesPage() {
                 <div className="flex justify-between items-center p-3 rounded-lg bg-[#1A2B3C]/20 border border-[#1A2B3C]">
                   <div className="flex flex-col">
                     <span className="font-semibold text-white">Resultado Correcto</span>
-                    <span className="text-xs text-gray-400">Victoria/Empate en 90 min</span>
+                    <span className="text-xs text-gray-400">Acierto de victoria o empate en tiempo regular</span>
                   </div>
                   <span className="text-xl font-bold text-[#D4AF37]">+3 pts</span>
                 </div>
@@ -77,14 +77,14 @@ export default function RulesPage() {
                 <div className="flex justify-between items-center p-3 rounded-lg bg-[#1A2B3C]/20 border border-[#1A2B3C]">
                   <div className="flex flex-col">
                     <span className="font-semibold text-white">Equipo Clasificado</span>
-                    <span className="text-xs text-gray-400">El que avanza (se suma al anterior)</span>
+                    <span className="text-xs text-gray-400">Acierto del equipo que avanza (se suma a los anteriores)</span>
                   </div>
                   <span className="text-xl font-bold text-[#D4AF37]">+2 pts</span>
                 </div>
               </div>
 
               <div className="p-3.5 bg-yellow-950/10 border border-yellow-900/20 rounded-lg text-xs text-yellow-400 leading-normal">
-                Nota: Se ha removido la bonificación de puntos por acertar el Campeón o Finalistas antes de iniciar el torneo. Los puntos se calculan estrictamente partido a partido en tiempo regular.
+                Nota: Todos los aciertos se suman de forma acumulativa, dando un <strong>máximo de 10 puntos</strong> por partido (5 por marcador exacto + 3 por resultado correcto + 2 por clasificado). Las predicciones se calculan estrictamente partido a partido.
               </div>
             </CardContent>
           </Card>

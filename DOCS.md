@@ -1,25 +1,26 @@
-# 📖 Documentación Técnica — La Polla Mundial 2026
+# 📖 Documentación Técnica — La Polla Mundial 2026 (Synaptica)
 
-> Documentación completa del sistema: arquitectura, base de datos, API, componentes frontend y backend.
+Esta documentación proporciona una especificación técnica profunda de la arquitectura de la aplicación, el diseño de la base de datos en Supabase, los flujos automáticos de sincronización y puntuación, el enrutamiento de seguridad y la estructura de componentes.
 
 ---
 
 ## Tabla de Contenidos
 
-1. [Arquitectura General](#1-arquitectura-general)
-2. [Base de Datos (Supabase / PostgreSQL)](#2-base-de-datos)
-3. [API Interna (Endpoints)](#3-api-interna)
-4. [Backend — Server Actions](#4-backend--server-actions)
-5. [Frontend — Páginas y Rutas](#5-frontend--páginas-y-rutas)
-6. [Componentes React](#6-componentes-react)
-7. [Middleware de Autenticación](#7-middleware-de-autenticación)
-8. [Sistema de Cron Jobs](#8-sistema-de-cron-jobs)
-9. [Variables de Entorno](#9-variables-de-entorno)
-10. [Sistema de Puntuación](#10-sistema-de-puntuación)
+1. [Arquitectura de la Aplicación](#1-arquitectura-de-la-aplicación)
+2. [Modelo de Base de Datos (Esquema ER)](#2-modelo-de-base-de-datos-esquema-er)
+3. [Descripción y Estructura de Tablas](#3-descripción-y-estructura-de-tablas)
+4. [Triggers y Procedimientos en PostgreSQL](#4-triggers-y-procedimientos-en-postgresql)
+5. [Políticas de Seguridad de Fila (RLS)](#5-políticas-de-seguridad-de-fila-rls)
+6. [API Interna (Endpoints de Sincronización)](#6-api-interna-endpoints-de-sincronización)
+7. [Middleware y Flujo de Sesión](#7-middleware-y-flujo-de-sesión)
+8. [Lógica de Puntuación y Reglas de Desempate](#8-lógica-de-puntuación-y-reglas-de-desempate)
+9. [Módulo Analítico: Model Card](#9-módulo-analítico-model-card)
 
 ---
 
-## 1. Arquitectura General
+## 1. Arquitectura de la Aplicación
+
+La aplicación está construida sobre el framework **Next.js 15** utilizando el paradigma de **App Router** y es desplegada como Serverless en **Vercel**. Toda la persistencia, autenticación de usuarios y lógica transaccional de negocio pesada reside en **Supabase** (PostgreSQL).
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -39,627 +40,282 @@
 │           │ Supabase SDK            │ fetch()          │
 └───────────┼─────────────────────────┼────────────────┘
             │                         │
-┌───────────▼─────────────┐  ┌────────▼──────────────┐
+┌___________▼_____________┐  ┌________▼______________┐
 │   SUPABASE (PostgreSQL)  │  │  worldcup26.ir (API)  │
 │                          │  │  Resultados Mundial   │
-│  Tables:                 │  │  /get/games           │
-│  · profiles              │  └───────────────────────┘
-│  · teams                 │
-│  · matches               │  ┌───────────────────────┐
-│  · predictions           │  │    CRON-JOB.ORG        │
-│  · bonus_predictions     │  │  Trigger cada 15 min  │
-│  · score_history         │  │  GET /api/cron/sync   │
-│  · model_cards           │  └───────────────────────┘
-│  · rounds_config         │
-│                          │
-│  Triggers:               │
-│  · on_match_finished     │
-│  · on_match_winner_prop  │
-│  · on_auth_user_created  │
+│  Tables, RLS, Triggers   │  └───────────────────────┘
 └──────────────────────────┘
 ```
 
 ---
 
-## 2. Base de Datos
-
-### 2.1 Diagrama de Tablas
-
-```
-auth.users (Supabase Auth)
-    │
-    └── profiles ─────────────────────────────────────────┐
-         id, username, team_name, partner_id,              │
-         partner_email, is_admin                           │
-                                                           │
-teams                                                      │
-    id, name, flag_url, group_name,                        │
-    position_in_group, is_qualified, eliminated            │
-         │                                                 │
-         ├──── matches ──────────────────────────────────┐ │
-         │      id, round, team1_id, team2_id,           │ │
-         │      team1_score, team2_score, winner_id,      │ │
-         │      next_match_id, match_datetime,            │ │
-         │      deadline, is_finished                     │ │
-         │                                                │ │
-         │      ┌───────────────────────────────────────┐│ │
-         │      │ predictions                           ││ │
-         │      │  user_id, match_id, score_local,      ││ │
-         │      │  score_visitor, winner_id             ││ │
-         │      └───────────────────────────────────────┘│ │
-         │                                                │ │
-         └──── bonus_predictions ────────────────────────┘ │
-                user_id, champion_id,                       │
-                finalist1_id, finalist2_id                  │
-                                                            │
-score_history ──────────────────────────────────────────────┘
-    user_id, match_id, round, points, is_exact
-
-model_cards
-    user_id, answers (JSONB), description, repo_url
-```
-
-### 2.2 Tablas
-
-#### `public.profiles`
-Extiende `auth.users` con datos del participante.
-
-| Columna | Tipo | Descripción |
-|---|---|---|
-| `id` | UUID PK | Referencia a `auth.users` |
-| `username` | TEXT UNIQUE | Nombre de usuario único |
-| `team_name` | TEXT | Nombre del equipo (individual o dupla) |
-| `partner_id` | UUID FK | Referencia al perfil del compañero de dupla |
-| `partner_email` | TEXT | Email del compañero invitado |
-| `is_admin` | BOOLEAN | Si el usuario tiene rol de administrador |
-| `created_at` | TIMESTAMPTZ | Fecha de registro |
-
-#### `public.teams`
-Equipos del Mundial (32 países).
-
-| Columna | Tipo | Descripción |
-|---|---|---|
-| `id` | UUID PK | Identificador único |
-| `name` | TEXT UNIQUE | Nombre del país (en español) |
-| `flag_url` | TEXT | URL de la bandera (flagcdn.com) |
-| `group_name` | TEXT | Grupo del torneo ('A' a 'L') |
-| `position_in_group` | INTEGER | Posición en el grupo (1, 2 o 3) |
-| `is_qualified` | BOOLEAN | Si el equipo está clasificado |
-| `eliminated` | BOOLEAN | Si el equipo fue eliminado |
-
-#### `public.matches`
-Partidos de la fase eliminatoria.
-
-| Columna | Tipo | Descripción |
-|---|---|---|
-| `id` | UUID PK | Identificador (UUIDs semánticos en el seed) |
-| `round` | TEXT | Ronda: `round_32`, `round_16`, `quarter`, `semi`, `final`, `third_place` |
-| `team1_id` | UUID FK | Equipo local |
-| `team2_id` | UUID FK | Equipo visitante |
-| `team1_score` | INTEGER | Goles del equipo local (90 min) |
-| `team2_score` | INTEGER | Goles del equipo visitante (90 min) |
-| `winner_id` | UUID FK | Equipo que avanza a la siguiente ronda |
-| `next_match_id` | UUID FK (self) | Partido al que avanza el ganador |
-| `match_datetime` | TIMESTAMPTZ | Fecha y hora oficial del partido (sync automático) |
-| `deadline` | TIMESTAMPTZ | 1 hora antes del partido (cierre de predicciones) |
-| `is_finished` | BOOLEAN | Si el partido ha concluido |
-
-**Mapeo del Bracket (UUID → API ID):**
-
-| UUID Sufijo DB | API ID | Ronda |
-|---|---|---|
-| `...3201` a `...3216` | 73 – 88 | Round of 32 |
-| `...1601` a `...1608` | 89 – 96 | Round of 16 |
-| `...0801` a `...0804` | 97 – 100 | Quarterfinals |
-| `...0401` a `...0402` | 101 – 102 | Semifinals |
-| `...3333...` | 103 | Third Place |
-| `...f1f1...` | 104 | Final |
-
-#### `public.predictions`
-Predicciones de usuarios por partido.
-
-| Columna | Tipo | Descripción |
-|---|---|---|
-| `user_id` | UUID FK | Usuario que predice |
-| `match_id` | UUID FK | Partido predicho |
-| `score_local` | INTEGER | Goles predichos equipo local (tiempo reglamentario) |
-| `score_visitor` | INTEGER | Goles predichos equipo visitante |
-| `winner_id` | UUID FK | Equipo predicho como clasificante |
-| `submitted_at` | TIMESTAMPTZ | Momento de la predicción |
-| UNIQUE | | `(user_id, match_id)` |
-
-#### `public.bonus_predictions`
-Predicciones especiales pre-torneo.
-
-| Columna | Tipo | Descripción |
-|---|---|---|
-| `user_id` | UUID FK | Usuario |
-| `champion_id` | UUID FK | Campeón predicho |
-| `finalist1_id` | UUID FK | Finalista 1 |
-| `finalist2_id` | UUID FK | Finalista 2 |
-
-#### `public.score_history`
-Historial de puntos por usuario y partido.
-
-| Columna | Tipo | Descripción |
-|---|---|---|
-| `user_id` | UUID FK | Usuario |
-| `match_id` | UUID FK | Partido |
-| `round` | TEXT | Ronda del partido |
-| `points` | INTEGER | Puntos obtenidos |
-| `is_exact` | BOOLEAN | Si fue marcador exacto |
-
-#### `public.model_cards`
-Fichas metodológicas analíticas de los equipos.
-
-| Columna | Tipo | Descripción |
-|---|---|---|
-| `user_id` | UUID FK | Usuario |
-| `answers` | JSONB | Respuestas a las 7 preguntas (q1_data ... q7_link) |
-| `description` | TEXT | Resumen del enfoque (copia de q3_approach) |
-| `repo_url` | TEXT | Enlace al repositorio o notebook |
-
-### 2.3 Triggers y Funciones de Base de Datos
-
-#### `public.handle_new_user()` — Trigger `on_auth_user_created`
-Se dispara al crear un usuario en `auth.users`. Crea automáticamente el registro en `public.profiles`.
-
-#### `public.calculate_match_points(match_uuid)` — Función
-Calcula y registra los puntos de todos los participantes que predijeron un partido específico al marcarlo como finalizado.
-
-**Lógica:**
-- Marcador exacto → **5 pts** base + **2 pts** si el equipo clasificante también fue correcto.
-- Solo resultado correcto (ganador o empate) → **3 pts** + **2 pts** si el clasificante fue correcto.
-- Predicción incorrecta → **0 pts**.
-
-#### `public.after_match_finished_trigger()` — Trigger `on_match_finished`
-Se dispara tras actualizar `is_finished`, `team1_score`, `team2_score` o `winner_id` en `matches`. Llama a `calculate_match_points()`.
-
-#### `public.propagate_winner_to_next_match()` — Trigger `on_match_winner_propagation`
-Se dispara tras actualizar `is_finished` o `winner_id` en un partido. Coloca al ganador como `team1_id` o `team2_id` en el partido de la siguiente ronda (`next_match_id`), determinando la posición por el UUID mínimo entre los dos partidos que alimentan la siguiente llave.
-
-### 2.4 Vistas
-
-#### `public.leaderboard`
-Vista agregada para el ranking de participantes.
-
-```sql
-SELECT
-  p.id AS user_id, p.username, p.team_name,
-  SUM(sh.points) AS total_points,
-  SUM(CASE WHEN sh.is_exact THEN 1 ELSE 0 END) AS exact_count,
-  SUM(CASE WHEN sh.round = 'round_32' THEN sh.points ELSE 0 END) AS r32_points,
-  -- ... puntos por ronda
-FROM profiles p
-LEFT JOIN score_history sh ON sh.user_id = p.id
-WHERE p.is_admin = FALSE
-GROUP BY p.id
-ORDER BY total_points DESC, exact_count DESC;
-```
-
-### 2.5 Políticas RLS (Row Level Security)
-
-| Tabla | Política |
-|---|---|
-| `profiles` | Lectura para todos los autenticados; solo el propietario puede editar |
-| `teams` | Lectura para todos; solo admins pueden modificar |
-| `matches` | Lectura para todos; solo admins pueden modificar |
-| `predictions` | El propietario las ve siempre; el resto las ve solo después del deadline; insert/update solo antes del deadline |
-| `bonus_predictions` | Visibles para todos después del 28 Jun; editable antes del 28 Jun |
-| `score_history` | Solo lectura; modificación solo vía funciones BD o admins |
-| `model_cards` | Lectura para todos; modificación solo por el propietario antes del 17 Jul |
-
----
-
-## 3. API Interna
-
-Todos los endpoints residen en `/app/api/`. Las rutas de `/api/cron/*` están **excluidas del middleware de autenticación** por diseño: se autentican internamente mediante `CRON_SECRET`.
-
-### `GET /api/cron/sync-matches`
-
-**Descripción:** Sincroniza los partidos de la fase eliminatoria con la API externa del Mundial. Actualiza automáticamente fechas, equipos (al finalizar la fase de grupos) y marcadores finales.
-
-**Autenticación:** Header `Authorization: Bearer <CRON_SECRET>`
-
-**Request:**
-```http
-GET https://synaptica-mundial-2026.vercel.app/api/cron/sync-matches
-Authorization: Bearer mi_clave_secreta_cron_2026
-```
-
-**Response exitosa (200):**
-```json
-{
-  "success": true,
-  "syncTime": "2026-06-18T15:28:39.950Z",
-  "updatedMatches": 29,
-  "updatedMatchups": 0,
-  "updatedScores": 0,
-  "updatedDates": 29
-}
-```
-
-**Response de error (500):**
-```json
-{
-  "success": false,
-  "error": "Descripción del error"
-}
-```
-
-**Response sin autorización (401):**
-```
-No Autorizado
-```
-
-**Lógica interna:**
-1. Valida el `CRON_SECRET` del header `Authorization`.
-2. Fetch a `https://worldcup26.ir/get/games`.
-3. Para cada partido en el `MATCH_MAPPING` (diccionario estático de 32 UUIDs ↔ API IDs):
-   - **Actualiza fechas**: Parsea `local_date` de la API (formato `MM/DD/YYYY HH:mm`) asumiendo EDT (UTC-4). Calcula `deadline = match_datetime - 1h`.
-   - **Actualiza equipos** (solo `round_32`): Si la API ya tiene nombres reales de países (no placeholders como "Winner Group A"), los busca en la BD y los asigna.
-   - **Actualiza marcadores** (todas las rondas): Si `finished = "TRUE"`, guarda `team1_score`, `team2_score`, `winner_id` y marca `is_finished = true`.
-4. Realiza una sola query de UPDATE por partido modificado (eficiencia).
-
-**Tabla de Mapeo MATCH_MAPPING:**
-
-```typescript
-const MATCH_MAPPING: Record<string, string> = {
-  // Round of 32
-  "32323232-3232-3232-3232-323232323201": "73",  // API R32 Match 1
-  "32323232-3232-3232-3232-323232323202": "75",  // API R32 Match 2 (mismo bracket)
-  // ... 14 partidos más
-  // Round of 16
-  "16161616-1616-1616-1616-161616161601": "90",
-  // ... Quarters, Semis, 3rd, Final
-  "f1f1f1f1-f1f1-f1f1-f1f1-f1f1f1f1f1f1": "104", // Gran Final
-};
-```
-
----
-
-### `GET /api/cron/update-standings`
-
-**Descripción:** Actualiza los datos de clasificación y equipos desde la API externa `api.worldcup2026.dev`.
-
-**Autenticación:** Header `Authorization: Bearer <CRON_SECRET>`
-
-**Response exitosa (200):**
-```json
-{
-  "success": true,
-  "count": 32
-}
-```
-
----
-
-## 4. Backend — Server Actions
-
-Definidas en [`lib/actions.ts`](file:///c:/Users/AndresToro/OneDrive - Synaptica/Synaptica_Mundial_2026/lib/actions.ts). Se ejecutan en el servidor sin exponer endpoints HTTP públicos.
-
-### `submitPrediction(matchId, scoreLocal, scoreVisitor, winnerId)`
-Guarda o actualiza la predicción de un usuario para un partido.
-
-**Validaciones:**
-- Usuario autenticado (no admin).
-- Partido existe y su `deadline` no ha vencido.
-- Scores ≥ 0.
-
-**Tabla:** `predictions` (upsert por `user_id, match_id`).
-
----
-
-### `submitBonus(championId, finalist1Id, finalist2Id)`
-Registra las predicciones bonus pre-torneo.
-
-**Validaciones:**
-- Usuario autenticado (no admin).
-- Fecha actual < 28 Jun 2026 00:00 UTC.
-
-**Tabla:** `bonus_predictions` (upsert por `user_id`).
-
----
-
-### `uploadModelCard(answers, repoUrl)`
-Guarda las respuestas del formulario de Model Card.
-
-**Parámetros:**
-- `answers`: `{ q1_data, q2_etl, q3_approach, q4_why, q5_recal, q6_assumptions, q7_link }`
-- `repoUrl`: URL opcional al repositorio o notebook.
-
-**Validaciones:**
-- Usuario autenticado (no admin).
-- Fecha actual < 17 Jul 2026 23:59:59 UTC.
-
-**Tabla:** `model_cards` (upsert por `user_id`).
-
----
-
-### `updateMatchResult(matchId, team1Id, team2Id, team1Score, team2Score, winnerId, isFinished)` _(Admin)_
-Actualiza manualmente el resultado de un partido. Requiere `is_admin = true`.
-
-Al establecer `isFinished = true`, el trigger `on_match_finished` dispara el cálculo de puntos y `on_match_winner_propagation` coloca al ganador en el siguiente cruce del bracket.
-
----
-
-### `saveTeam(teamId, name, flagUrl, groupName, positionInGroup, isQualified, eliminated)` _(Admin)_
-Crea o edita un equipo en la tabla `teams`. Requiere `is_admin = true`.
-
----
-
-### `deleteTeam(teamId)` _(Admin)_
-Elimina un equipo. Requiere `is_admin = true`.
-
----
-
-### `saveTeamsBulk(teams[])` _(Admin)_
-Inserta o actualiza múltiples equipos de una vez (usado por scripts de seed). Requiere `is_admin = true`.
-
----
-
-### `deleteUserAction(userId)` _(Admin)_
-Elimina el perfil de un participante de `public.profiles`. No puede eliminar al propio admin. Requiere `is_admin = true`.
-
----
-
-## 5. Frontend — Páginas y Rutas
-
-### Rutas Públicas
-
-| Ruta | Descripción |
-|---|---|
-| `/` | Landing page (redirige al dashboard si ya estás autenticado) |
-| `/auth/login` | Inicio de sesión |
-| `/auth/sign-up` | Registro de nueva cuenta |
-| `/auth/forgot-password` | Recuperación de contraseña |
-| `/auth/update-password` | Actualización de contraseña (post reset) |
-| `/auth/confirm` | Confirmación de email (callback de Supabase) |
-| `/auth/error` | Página de error de autenticación |
-
-### Rutas Protegidas (requieren sesión)
-
-| Ruta | Componente Principal | Descripción |
-|---|---|---|
-| `/dashboard` | `DashboardShell` + `DashboardCharts` | Dashboard principal con posición actual, estadísticas y gráficos de progreso |
-| `/dashboard/bracket` | `BracketView` | Vista del árbol de eliminación completo con modales de predicción |
-| `/dashboard/predictions/[round]` | `PredictionForm` | Formulario de predicciones para una ronda específica |
-| `/dashboard/leaderboard` | Tabla + Recharts | Tabla de posiciones con gráficos de barras por puntaje |
-| `/dashboard/model-card` | `UploadCard` | Formulario de 7 preguntas de la ficha metodológica |
-| `/dashboard/rules` | Página estática | Reglamento de la polla |
-
-### Rutas de Administración (requieren `is_admin = true`)
-
-| Ruta | Componente | Descripción |
-|---|---|---|
-| `/dashboard/admin` | Panel principal | Resumen rápido del estado del torneo |
-| `/dashboard/admin/matches` | `AdminMatchesList` | Ver y editar resultados de partidos |
-| `/dashboard/admin/teams` | `AdminTeamsManager` | CRUD de los 32 equipos del Mundial |
-| `/dashboard/admin/users` | `AdminUsersTable` | Directorio de participantes registrados |
-| `/dashboard/admin/model-cards` | `AdminModelCardsCharts` | Visualización analítica de las fichas metodológicas |
-
----
-
-## 6. Componentes React
-
-### `BracketView` (`components/bracket/BracketView.tsx`)
-Vista visual del bracket completo del torneo.
-
-- Renderiza el árbol de eliminación directa de R32 a la Final.
-- Al hacer clic en un partido con predicciones habilitadas, abre un modal con `PredictionForm`.
-- Muestra: equipos, marcadores finales, estado del partido y predicción del usuario.
-- Estado de solo lectura para admins y cuando el deadline ha pasado.
-
----
-
-### `PredictionForm` (`components/prediction/PredictionForm.tsx`)
-Formulario para predecir marcadores y equipo clasificante.
-
-- Agrupa los partidos de la ronda seleccionada ordenados cronológicamente.
-- Cada partido muestra inputs para el marcador y un selector visual del equipo que avanza.
-- Deshabilita el formulario automáticamente si el `deadline` del partido ya pasó.
-- Admins ven los partidos en modo solo lectura.
-
----
-
-### `DashboardShell` (`components/dashboard/DashboardShell.tsx`)
-Shell principal del dashboard de cada usuario.
-
-- Muestra la posición actual en el ranking.
-- Estadísticas rápidas: total de puntos, marcadores exactos, predicciones realizadas vs. disponibles.
-- Tarjeta de próximos partidos con el tiempo restante para predecir.
-- Tarjeta de pareja/compañero de dupla y estado de la invitación.
-
----
-
-### `DashboardCharts` (`components/dashboard/DashboardCharts.tsx`)
-Gráficos de rendimiento del usuario.
-
-- **Progresión por ronda**: Gráfico de barras (Recharts `BarChart`) con los puntos obtenidos en cada fase.
-- **Comparativa con el grupo**: Puntuación del usuario vs. promedio del grupo.
-- Datos traídos desde la vista `leaderboard` y `score_history`.
-
----
-
-### `AdminMatchesList` (`components/admin/AdminMatchesList.tsx`)
-Panel de administración de partidos para el admin.
-
-- Lista todos los partidos de todas las rondas con sus equipos, fecha y estado.
-- Permite al admin: asignar equipos, ingresar marcadores, seleccionar al ganador y marcar el partido como finalizado.
-- Al marcar `isFinished = true`, se disparan los triggers de puntuación y propagación en Supabase.
-
----
-
-### `AdminTeamsManager` (`components/admin/AdminTeamsManager.tsx`)
-CRUD de equipos para el admin.
-
-- Tabla con todos los 32 equipos, su bandera, grupo y posición.
-- Formulario modal para crear/editar equipos (nombre, URL bandera, grupo, posición, estado clasificado/eliminado).
-- Botón de eliminación con confirmación.
-
----
-
-### `AdminUsersTable` (`components/admin/AdminUsersTable.tsx`)
-Directorio de participantes para el admin.
-
-- Muestra todos los usuarios registrados con su nombre, equipo, compañero de dupla y estado.
-- Permite al admin eliminar participantes.
-
----
-
-### `AdminModelCardsCharts` (`components/admin/AdminModelCardsCharts.tsx`)
-Dashboard analítico de fichas metodológicas.
-
-- **Gráfico de Metodologías** (`PieChart` de Recharts): Clasifica los enfoques por palabras clave (Poisson, Elo, Machine Learning, Monte Carlo, LLMs, Manual).
-- **Gráfico de Fuentes de Datos** (`BarChart`): Frecuencia de fuentes usadas (Ranking FIFA, Históricos, Elo, Fase de grupos).
-- **Métricas rápidas**: Total de fichas completadas y % con repositorio de código compartido.
-- Listado detallado de todas las fichas con respuestas estructuradas por pregunta.
-
----
-
-### `UploadCard` (`components/model-card/UploadCard.tsx`)
-Formulario estructurado de la Model Card para el usuario.
-
-**7 preguntas del formulario:**
-
-| Campo | Pregunta | Tipo |
-|---|---|---|
-| `q1_data` | ¿Qué fuentes de datos usaron? | Textarea |
-| `q2_etl` | ¿Cómo prepararon los datos? | Input |
-| `q3_approach` | ¿Qué enfoque/modelo usaron? | Input |
-| `q4_why` | ¿Por qué eligieron ese enfoque? | Input |
-| `q5_recal` | ¿Cómo recalibraron cada ronda? | Input |
-| `q6_assumptions` | ¿Qué supuestos y limitaciones tienen? | Textarea |
-| `q7_link` | Enlace a repositorio/notebook (opcional) | Input |
-
----
-
-## 7. Middleware de Autenticación
-
-**Archivo:** [`lib/supabase/proxy.ts`](file:///c:/Users/AndresToro/OneDrive - Synaptica/Synaptica_Mundial_2026/lib/supabase/proxy.ts)
-
-El middleware se ejecuta en cada request usando `proxy.ts` en la raíz.
-
-**Lógica de enrutamiento:**
-
-```
-Request entrante
-     │
-     ▼
-¿Ruta inicia con /api/?  →  Pasar (sin redirección). Los endpoints manejan su propia auth.
-     │ No
-     ▼
-¿Usuario autenticado?
-     │ No → ¿Ruta es / o /auth/*?  →  Pasar
-     │           │ No → Redirigir a /auth/login
-     │ Sí → ¿Ruta es /?  →  Redirigir a /dashboard
-     │          │ No → Pasar
-```
-
-> ⚠️ **Importante**: Las rutas `/api/*` están explícitamente excluidas de la redirección de autenticación. Cada endpoint de API valida su propia autenticación internamente (ej. `CRON_SECRET`).
-
----
-
-## 8. Sistema de Cron Jobs
-
-### Diagrama de Flujo Completo
-
-```
-[cron-job.org] ─── cada 15 min ───► GET /api/cron/sync-matches
-                                          │
-                                    Valida CRON_SECRET
-                                          │
-                                    GET worldcup26.ir/get/games
-                                          │
-                                    Para cada partido en MATCH_MAPPING:
-                                          │
-                              ┌───────────┼───────────┐
-                              │           │           │
-                         Fecha/Hora    Equipos    Marcador
-                         (siempre)    (si no    (si finished
-                              │       placeholder)  = TRUE)
-                              │           │           │
-                              └───────────┴───────────┘
-                                          │
-                              UPDATE matches SET ... en Supabase
-                                          │
-                              Si is_finished = TRUE ──────────────────┐
-                                          │                           │
-                              TRIGGER: after_match_finished     TRIGGER: propagate_winner
-                                          │                           │
-                              calculate_match_points()      UPDATE next match
-                                          │                  SET team1_id / team2_id
-                              INSERT score_history
-```
-
-### Configuración del Cron en Vercel (`vercel.json`)
-
-```json
-{
-  "crons": [
-    {
-      "path": "/api/cron/sync-matches",
-      "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/update-standings",
-      "schedule": "0 1 * * *"
+## 2. Modelo de Base de Datos (Esquema ER)
+
+El siguiente diagrama detalla las relaciones de clave foránea, cardinalidades y restricciones entre las tablas administradas en el esquema de base de datos de Supabase.
+
+```mermaid
+erDiagram
+    profiles {
+        uuid id PK
+        text username
+        text team_name
+        uuid partner_id FK
+        text partner_email
+        boolean is_admin
+        timestamptz created_at
     }
-  ]
-}
+
+    teams {
+        uuid id PK
+        text name
+        text flag_url
+        text group_name
+        integer position_in_group
+        boolean is_qualified
+        boolean eliminated
+    }
+
+    matches {
+        uuid id PK
+        text round
+        uuid team1_id FK
+        uuid team2_id FK
+        integer team1_score
+        integer team2_score
+        uuid winner_id FK
+        uuid next_match_id FK
+        timestamptz match_datetime
+        timestamptz deadline
+        boolean is_finished
+    }
+
+    predictions {
+        uuid user_id PK, FK
+        uuid match_id PK, FK
+        integer score_local
+        integer score_visitor
+        uuid winner_id FK
+        timestamptz submitted_at
+    }
+
+    bonus_predictions {
+        uuid user_id PK, FK
+        uuid champion_id FK
+        uuid finalist1_id FK
+        uuid finalist2_id FK
+        timestamptz submitted_at
+    }
+
+    score_history {
+        uuid user_id PK, FK
+        uuid match_id PK, FK
+        text round
+        integer points
+        boolean is_exact
+    }
+
+    model_cards {
+        uuid user_id PK, FK
+        jsonb answers
+        text description
+        text repo_url
+        timestamptz uploaded_at
+    }
+
+    profiles ||--o| profiles : "partner_id (Dupla)"
+    profiles ||--o{ predictions : "user_id"
+    profiles ||--o| bonus_predictions : "user_id"
+    profiles ||--o{ score_history : "user_id"
+    profiles ||--o| model_cards : "user_id"
+
+    teams ||--o{ matches : "team1_id / team2_id / winner_id"
+    teams ||--o{ predictions : "winner_id"
+    teams ||--o{ bonus_predictions : "champion_id / finalist1_id / finalist2_id"
+
+    matches ||--o{ predictions : "match_id"
+    matches ||--o{ score_history : "match_id"
+    matches ||--o| matches : "next_match_id"
 ```
 
-> ℹ️ El cron nativo de Vercel (Hobby/gratuito) solo puede ejecutarse una vez al día. La frecuencia de 15 minutos la aporta **cron-job.org** de forma gratuita.
+---
 
-### Configuración de cron-job.org
+## 3. Descripción y Estructura de Tablas
 
-| Campo | Valor |
-|---|---|
-| URL | `https://synaptica-mundial-2026.vercel.app/api/cron/sync-matches` |
-| Método | `GET` |
-| Frecuencia | Cada 15 minutos (`*/15 * * * *`) |
-| Header | `Authorization: Bearer <CRON_SECRET>` |
-| Zona Horaria | America/Bogota |
+### 3.1 `public.profiles`
+Contiene la información de los perfiles de usuario. Se crea automáticamente un registro mediante un trigger PostgreSQL enlazado al esquema `auth.users` de Supabase Auth.
+- `id` (UUID, PK): Vinculado directamente a `auth.users.id`.
+- `username` (TEXT, UNIQUE): Nombre legible para mostrar en el Leaderboard.
+- `team_name` (TEXT): Nombre descriptivo de la dupla o equipo individual.
+- `partner_id` (UUID, FK, Nullable): Apunta al `id` del compañero si el usuario juega en dupla.
+- `partner_email` (TEXT, Nullable): Correo electrónico del compañero invitado para sincronizar perfiles.
+- `is_admin` (BOOLEAN): Define privilegios de administración del sistema (CRUD de partidos y visualizaciones analíticas).
+
+### 3.2 `public.teams`
+Catálogo de los 32 seleccionados nacionales clasificados a la Copa Mundial.
+- `id` (UUID, PK): Identificador único del equipo.
+- `name` (TEXT, UNIQUE): Nombre oficial de la selección (en español).
+- `flag_url` (TEXT): URL pública de la bandera del país.
+- `group_name` (TEXT): Identificador del grupo (de la 'A' a la 'L').
+- `position_in_group` (INTEGER): Posición actual en el grupo (1 a 4).
+- `is_qualified` (BOOLEAN): `true` si el equipo clasifica matemáticamente a Ronda de 32.
+- `eliminated` (BOOLEAN): `true` si el equipo ya no cuenta con posibilidad de avanzar.
+
+### 3.3 `public.matches`
+Almacena el fixture completo de la fase eliminatoria directa (Round of 32 a la Final).
+- `id` (UUID, PK): Identificador del partido (se utilizan UUIDs fijos en el seed de datos).
+- `round` (TEXT): Etapa: `round_32`, `round_16`, `quarter`, `semi`, `final`, `third_place`.
+- `team1_id` / `team2_id` (UUID, FK, Nullable): Apuntan a `teams.id`. Son null hasta definirse los cruces.
+- `team1_score` / `team2_score` (INTEGER, Nullable): Goles reales al finalizar los 90 minutos reglamentarios (o 120 min de prórroga).
+- `winner_id` (UUID, FK, Nullable): Equipo que clasifica a la siguiente fase (indica ganador en penaltis en caso de empate).
+- `next_match_id` (UUID, FK, Nullable): Apunta al `matches.id` del siguiente cruce donde avanzará el ganador de esta llave.
+- `match_datetime` (TIMESTAMPTZ): Fecha y hora del silbatazo inicial.
+- `deadline` (TIMESTAMPTZ): Límite establecido para enviar predicciones (calculado como `match_datetime - 1 hora`).
+- `is_finished` (BOOLEAN): Define si el partido ha finalizado y se deben procesar los puntajes.
+
+### 3.4 `public.predictions`
+Predicciones de marcadores y clasificados individuales de los usuarios.
+- `user_id` (UUID, PK, FK): Perfil del participante.
+- `match_id` (UUID, PK, FK): Partido predictivo.
+- `score_local` / `score_visitor` (INTEGER): Goles estimados.
+- `winner_id` (UUID, FK): Selección que el usuario predice que avanzará a la siguiente fase.
+
+### 3.5 `public.score_history`
+Registros históricos de puntos obtenidos por usuario en cada partido.
+- `user_id` (UUID, PK, FK): Participante calificado.
+- `match_id` (UUID, PK, FK): Partido calificado.
+- `round` (TEXT): Ronda del partido (permite agrupaciones eficientes en gráficos).
+- `points` (INTEGER): Puntos otorgados (0, 3, 5, o 7).
+- `is_exact` (BOOLEAN): `true` si el marcador fue exacto.
 
 ---
 
-## 9. Variables de Entorno
+## 4. Triggers y Procedimientos en PostgreSQL
 
-| Variable | Requerida en | Descripción |
-|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Local + Vercel | URL del proyecto Supabase (`https://xxx.supabase.co`) |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Local + Vercel | Clave pública `anon` de Supabase |
-| `CRON_SECRET` | Vercel | Token secreto que valida las peticiones al endpoint del cron |
-| `SUPABASE_SERVICE_ROLE_KEY` | Vercel | Clave `service_role` de Supabase que bypasea RLS (solo server-side) |
+La lógica de negocio transaccional y cálculo de puntos está delegada a triggers nativos en la base de datos para garantizar la integridad referencial y el rendimiento.
 
-> ⚠️ **Nunca commitear** `SUPABASE_SERVICE_ROLE_KEY` al repositorio. Solo configurarla en el panel de Vercel.
+### 4.1 Cálculo Automático de Puntos (`on_match_finished`)
+Disparador en la tabla `matches` al actualizar `is_finished = true`.
+
+**Flujo lógico de base de datos:**
+1. Lee todas las predicciones del partido finalizado (`match_id`).
+2. Compara el marcador real (`team1_score`, `team2_score`) y el clasificado real (`winner_id`) contra la predicción del usuario (`score_local`, `score_visitor`, `winner_id` predicho).
+3. Evalúa las siguientes reglas acumulativas:
+   - **Marcador Exacto**: Si los goles de local y visitante coinciden exactamente → otorga **5 puntos** y registra `is_exact = true`.
+   - **Resultado Correcto (Acierto de Ganador/Empate)**: Si el usuario acertó quién ganó el partido o si empataron (sin coincidir exactamente en goles) → otorga **3 puntos**.
+   - **Clasificante Correcto**: Si el clasificado predicho coincide con el `winner_id` real → otorga **+2 puntos** adicionales.
+   - **Predicción Incorrecta**: En cualquier otro caso → otorga **0 puntos**.
+4. Inserta o actualiza el registro en `public.score_history` con el puntaje final calculado.
+
+### 4.2 Propagación Automática de Llaves (`on_match_winner_propagation`)
+Disparador en la tabla `matches` al actualizar `is_finished = true` y actualizar `winner_id`.
+
+**Flujo lógico de base de datos:**
+1. Identifica el partido de destino (`next_match_id`).
+2. Determina si el partido actual alimenta al partido destino como local (`team1_id`) o visitante (`team2_id`). Esto se resuelve analizando el orden alfabético/numérico de los UUIDs de los dos partidos que apuntan al mismo `next_match_id`.
+3. Ejecuta un `UPDATE` en el partido destino, inyectando el `winner_id` en la posición correspondiente.
 
 ---
 
-## 10. Sistema de Puntuación
+## 5. Políticas de Seguridad de Fila (RLS)
 
-### Tabla de Puntos por Predicción
+Para garantizar la confidencialidad de las estrategias predictivas, la base de datos implementa políticas RLS.
 
-| Condición | Puntos por Marcador | Puntos por Clasificante |
-|---|---|---|
-| Marcador exacto (ej: 2-1 = 2-1) | **+5 pts** | **+2 pts** si equipo correcto |
-| Resultado correcto (ganó, perdió o empató) | **+3 pts** | **+2 pts** si equipo correcto |
-| Resultado incorrecto | **0 pts** | **0 pts** |
+### 5.1 Tabla `predictions`
+- **SELECT**: Un usuario puede leer sus propias predicciones en cualquier momento. Solo puede leer las predicciones de otros usuarios si la hora actual supera la fecha límite del partido (`now() > matches.deadline`).
+- **INSERT / UPDATE**: Permitido solo para el propietario de la predicción y únicamente si la hora actual es inferior a la fecha límite (`now() < matches.deadline`). Los administradores tienen deshabilitada la creación de predicciones.
 
-**Máximo por partido:** 7 puntos (5 exacto + 2 clasificante correcto).
+### 5.2 Tabla `model_cards`
+- **SELECT**: Visible públicamente para usuarios autenticados para fomentar la transparencia de las metodologías analíticas.
+- **INSERT / UPDATE**: Permitido solo para el propietario del perfil y si la fecha actual es anterior al cierre de la pista analítica (17 de Julio de 2026).
 
-### Tabla de Desempate en el Leaderboard
+---
 
-En caso de empate en `total_points`, el desempate se resuelve en orden:
-1. Mayor número de marcadores exactos (`exact_count`).
-2. Mayor puntaje acumulado en la ronda Final (`final_points`).
+## 6. API Interna (Endpoints de Sincronización)
 
-### Puntos por Ronda (columnas en `leaderboard`)
+La aplicación expone endpoints especiales para que cron jobs automatizados actualicen el estado del fixture.
 
-| Columna | Partidos |
-|---|---|
-| `r32_points` | 16 partidos de la Ronda de 32 |
-| `r16_points` | 8 Octavos de Final |
-| `quarter_points` | 4 Cuartos de Final |
-| `semi_points` | 2 Semifinales |
-| `final_points` | Final + Tercer Puesto |
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Cron as cron-job.org / Vercel Cron
+    participant Endpoint as /api/cron/sync-matches
+    participant API as worldcup26.ir (API)
+    participant DB as Supabase PostgreSQL
+
+    Cron->>Endpoint: GET request + Bearer Token (CRON_SECRET)
+    activate Endpoint
+    Endpoint->>Endpoint: Valida firma de token de autorización
+    alt Token Inválido (401)
+        Endpoint-->>Cron: 401 Unauthorized
+    else Token Válido
+        Endpoint->>API: GET /get/games
+        activate API
+        API-->>Endpoint: JSON de partidos y resultados
+        deactivate API
+
+        loop Para cada partido mapeado
+            Endpoint->>Endpoint: Compara fecha, equipos y resultados
+            alt Hubo actualizaciones (fechas, equipos, o marcadores)
+                Endpoint->>DB: UPDATE matches SET ...
+                alt Partido marcado is_finished = true
+                    DB->>DB: Trigger: after_match_finished() -> calculate_match_points()
+                    DB->>DB: Inserta en score_history para todos los usuarios
+                    DB->>DB: Trigger: propagate_winner_to_next_match()
+                    DB->>DB: UPDATE next matches SET team1_id / team2_id
+                end
+            end
+        end
+
+        Endpoint-->>Cron: 200 OK + JSON estadísticas de sincronización
+    end
+    deactivate Endpoint
+```
+
+### 6.1 `GET /api/cron/sync-matches`
+Sincroniza los resultados e información de fechas con la API de `worldcup26.ir`.
+- **Cabeceras obligatorias**: `Authorization: Bearer <CRON_SECRET>`
+- **Comportamiento**:
+  1. Descarga el listado de partidos de la API externa.
+  2. Parsea las fechas (asumiendo huso horario del este de EE.UU. EDT - UTC-4) y ajusta los deadlines.
+  3. Si la fase de grupos finalizó y los equipos del bracket eliminatorio están definidos, inyecta los IDs reales correspondientes de la BD.
+  4. Si un partido de la API tiene el flag `finished = true`, actualiza los marcadores en `matches` y marca `is_finished = true`, disparando la cascada de puntos y propagación de llaves.
+
+---
+
+## 7. Middleware y Flujo de Sesión
+
+El control de acceso reside en [`lib/supabase/proxy.ts`](file:///c:/Users/AndresToro/OneDrive - Synaptica/Synaptica_Mundial_2026/lib/supabase/proxy.ts).
+
+### Flujo de Enrutamiento
+1. Si el request apunta a un recurso estático (imágenes, CSS, JS) o a la ruta base de la API `/api/*`, el middleware **delega la solicitud**. Los endpoints de API validan su propio secreto.
+2. Si el usuario **no tiene una sesión válida (cookie nula)**:
+   - Se le permite ingresar a la página de bienvenida `/`, a las páginas de autenticación `/auth/*` y al favicon.
+   - Si intenta acceder a `/dashboard/*`, se realiza una redirección temporal (HTTP 307) hacia `/auth/login`.
+3. Si el usuario **tiene una sesión activa**:
+   - Si intenta acceder a `/`, se le redirige automáticamente a `/dashboard` para mejorar la experiencia de usuario.
+
+---
+
+## 8. Lógica de Puntuación y Reglas de Desempate
+
+El puntaje máximo por partido es de **7 puntos** (5 por marcador exacto + 2 por clasificado correcto).
+
+### Ejemplo de Escenarios
+Si un partido finaliza **Francia 2 - 1 Italia** (Francia clasifica):
+
+| Predicción | Marcador Exacto (5 pts) | Resultado Correcto (3 pts) | Clasifica Correcto (+2 pts) | Puntaje Total |
+|---|:---:|:---:|:---:|:---:|
+| **Francia 2 - 1 Italia** (Gana Francia) | Sí | - | Sí | **7 pts** |
+| **Francia 1 - 0 Italia** (Gana Francia) | No | Sí | Sí | **5 pts** |
+| **Francia 2 - 2 Italia** (Gana Italia en penaltis) | No | No | No | **0 pts** |
+| **Francia 1 - 1 Italia** (Gana Francia en penaltis) | No | No | Sí | **2 pts** |
+
+---
+
+## 9. Módulo Analítico: Model Card
+
+Para la **Pista Analítica** de Synaptica, los usuarios registran un "Model Card" técnico antes del 17 de Julio de 2026. 
+
+El panel de administrador consolida estas respuestas en un dashboard analítico con gráficos dinámicos de Recharts:
+- **Distribución de Enfoques**: Gráfico circular (`PieChart`) que categoriza los enfoques predictivos mediante minería de palabras clave en la respuesta de la pregunta 3 (`Poisson`, `Machine Learning`, `Manual`, `ELO`, `Redes Neuronales`).
+- **Orígenes de Datos**: Gráfico de barras (`BarChart`) que rastrea la popularidad de las fuentes de información utilizadas por los colaboradores para alimentar sus modelos.

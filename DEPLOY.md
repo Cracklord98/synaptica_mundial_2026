@@ -1,71 +1,84 @@
 # 🚀 Guía de Despliegue — La Polla Mundial 2026 (Synaptica)
 
-> Guía completa para configurar Supabase, desplegar en Vercel y activar la sincronización automática de resultados del Mundial.
+Esta guía describe los pasos necesarios para desplegar la plataforma predictiva corporativa en producción, incluyendo la base de datos Supabase, el hosting en Vercel, el almacenamiento y la automatización del Cron Job.
 
 ---
 
-## Índice
+## Tabla de Contenidos
 
-1. [Configuración de Supabase](#1-configuración-de-supabase)
-2. [Despliegue en Vercel](#2-despliegue-en-vercel)
-3. [Sincronización Automática (Cron Job)](#3-sincronización-automática-cron-job)
-4. [Flujo de Participación](#4-flujo-de-participación)
-5. [Responsabilidades del Administrador](#5-responsabilidades-del-administrador)
+1. [Paso 1: Configurar Supabase (Base de Datos)](#1-configurar-supabase-base-de-datos)
+2. [Paso 2: Crear el Rol de Administrador](#2-crear-el-rol-de-administrador)
+3. [Paso 3: Configurar Supabase Storage (Model Cards)](#3-configurar-supabase-storage-model-cards)
+4. [Paso 4: Desplegar en Vercel](#4-desplegar-en-vercel)
+5. [Paso 5: Automatizar la Sincronización (Cron Job)](#5-automatizar-la-sincronización-cron-job)
 
 ---
 
-## 1. Configuración de Supabase
+## 1. Configurar Supabase (Base de Datos)
 
-### A. Inicialización de la Base de Datos
+### A. Creación del Proyecto
+1. Inicia sesión en [Supabase Console](https://supabase.com) y haz clic en **New Project**.
+2. Completa los datos requeridos (nombre del proyecto, contraseña de la base de datos y región recomendada más cercana, por ejemplo, *us-east-1* o *sa-east-1*).
+3. Espera unos minutos hasta que se aprovisione la base de datos.
 
-1. Ve a tu panel de control de [Supabase](https://supabase.com) y crea un nuevo proyecto.
-2. Abre la pestaña de **SQL Editor** en el panel lateral izquierdo.
-3. Ejecuta los siguientes scripts **en orden**, uno por uno:
+### B. Inicializar el Esquema SQL
+Abre la sección de **SQL Editor** en la barra lateral izquierda de Supabase y ejecuta los archivos de migración (ubicados en `supabase/migrations/`) **estrictamente en el siguiente orden**:
 
-```
-supabase/migrations/20260616000000_init_schema.sql          ← Tablas, triggers, RLS
-supabase/migrations/20260616000001_seed_data.sql            ← 32 equipos + bracket
-supabase/migrations/20260616000002_remove_payment_columns.sql
-supabase/migrations/20260617000000_admin_delete_users.sql
-supabase/migrations/20260617000001_winner_propagation.sql   ← Trigger de propagación
-```
+1. **`20260616000000_init_schema.sql`**: Define el esquema, crea las tablas, configura triggers base y habilita Row Level Security (RLS).
+2. **`20260616000001_seed_data.sql`**: Inserta los registros semilla de los 32 seleccionados del Mundial y define las conexiones e identificadores iniciales del bracket.
+3. **`20260616000002_remove_payment_columns.sql`**: Ajusta el esquema eliminando columnas obsoletas de pasarelas de pago.
+4. **`20260617000000_admin_delete_users.sql`**: Habilita funciones especiales para que los administradores eliminen registros de perfiles.
+5. **`20260617000001_winner_propagation.sql`**: Crea el trigger que propaga automáticamente a los ganadores de llaves al partido destino correspondiente.
 
-> ⚠️ **Orden crítico**: El script de seed requiere que las tablas ya existan. No los ejecutes en paralelo.
+> [!WARNING]
+> **No ejecutes los scripts en paralelo**. Cada migración depende de que las tablas creadas en el script anterior existan y estén configuradas.
 
-### B. Crear Cuenta Administradora
+---
 
-El administrador debe registrarse primero en la aplicación web y luego ejecutar:
+## 2. Crear el Rol de Administrador
+
+Para gestionar el sistema, al menos un usuario del equipo debe poseer rol de administrador. 
+
+1. Regístrate en la aplicación web mediante el flujo normal de registro con el correo que deseas designar como admin (ejemplo: `admin@synaptica.co`).
+2. Una vez registrado, ve al **SQL Editor** de Supabase y ejecuta la siguiente consulta:
 
 ```sql
--- Sustituye el correo por el del admin real
+-- Sustituye el correo electrónico por el del administrador real
 UPDATE public.profiles
 SET is_admin = TRUE
 WHERE id = (SELECT id FROM auth.users WHERE email = 'admin@synaptica.co');
 ```
 
-### C. Configurar el Storage Bucket (Model Cards)
+> [!NOTE]
+> Los administradores no aparecen en la tabla de clasificaciones (Leaderboard) y no se les permite realizar predicciones de partidos ni rellenar Model Cards.
 
-1. Ve a la pestaña **Storage** en Supabase.
-2. Crea un bucket con el nombre exacto: **`model-cards`**
-3. Marca la casilla **Public bucket**.
-4. Ejecuta las siguientes políticas en el SQL Editor:
+---
+
+## 3. Configurar Supabase Storage (Model Cards)
+
+El módulo de **Model Card** permite subir diagramas o archivos adjuntos que expliquen el enfoque analítico del modelo de predicción. Esto requiere un bucket de almacenamiento configurado.
+
+1. Navega a la sección **Storage** en tu panel de control de Supabase.
+2. Haz clic en **New Bucket** y nómbralo exactamente: **`model-cards`**.
+3. Asegúrate de activar la casilla **Public bucket** (para que otros participantes puedan visualizar las metodologías) y guarda.
+4. Para proteger el bucket, ve al **SQL Editor** de Supabase y ejecuta las siguientes políticas de seguridad:
 
 ```sql
--- Lectura pública
+-- 1. Permitir lectura pública de los archivos adjuntos
 CREATE POLICY "Lectura Publica Model Cards" ON storage.objects
   FOR SELECT TO public USING (bucket_id = 'model-cards');
 
--- Subida autenticada
+-- 2. Permitir subida de archivos solo a usuarios autenticados
 CREATE POLICY "Subida Autorizada Model Cards" ON storage.objects
   FOR INSERT TO authenticated WITH CHECK (bucket_id = 'model-cards');
 
--- Modificación del propio archivo
+-- 3. Permitir actualización de archivos únicamente a sus propietarios
 CREATE POLICY "Modificacion Propietario Model Cards" ON storage.objects
   FOR UPDATE TO authenticated
   USING (bucket_id = 'model-cards' AND auth.uid()::text = owner::text)
   WITH CHECK (bucket_id = 'model-cards' AND auth.uid()::text = owner::text);
 
--- Eliminación del propio archivo
+-- 4. Permitir eliminación de archivos únicamente a sus propietarios
 CREATE POLICY "Eliminacion Propietario Model Cards" ON storage.objects
   FOR DELETE TO authenticated
   USING (bucket_id = 'model-cards' AND auth.uid()::text = owner::text);
@@ -73,44 +86,46 @@ CREATE POLICY "Eliminacion Propietario Model Cards" ON storage.objects
 
 ---
 
-## 2. Despliegue en Vercel
+## 4. Desplegar en Vercel
 
-### Paso a Paso
+1. Empuja el código del proyecto a un repositorio privado de GitHub.
+2. Entra a [Vercel](https://vercel.com) e inicia sesión con tu cuenta.
+3. Haz clic en **Add New...** → **Project** e importa el repositorio `synaptica_mundial_2026`.
+4. En la sección **Environment Variables**, añade las siguientes variables críticas:
 
-1. Sube el proyecto a tu repositorio de GitHub.
-2. Ve a [vercel.com](https://vercel.com) → **New Project** → conecta el repositorio.
-3. En la sección **Environment Variables**, agrega:
-
-### Variables de Entorno Requeridas
-
-| Variable | Descripción | Ejemplo |
+| Nombre de la Variable | Tipo | Descripción / Ejemplo |
 |---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | URL de tu proyecto Supabase | `https://xxxxxxxx.supabase.co` |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Publishable Key de Supabase | `sb_publishable_...` |
-| `CRON_SECRET` | Token secreto para autenticar el cron job | `mi_clave_secreta_cron_2026` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service Role Key de Supabase (para operaciones server-side sin RLS) | `eyJhbGciOi...` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Pública | URL de la API de tu Supabase (`https://xxxx.supabase.co`) |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Pública | Clave pública anónima de Supabase (`eyJhbG...`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Secreta** | Clave de rol de servicio (bypassea RLS para uso exclusivo del Cron Job) |
+| `CRON_SECRET` | **Secreta** | Token de seguridad creado por ti para autorizar los llamados al endpoint de sincronización |
 
-4. Haz clic en **Deploy**.
-
-### Redeploy Manual
-
-Para actualizar la app después de cambios en el código:
-1. Ve al proyecto en [vercel.com/dashboard](https://vercel.com/dashboard).
-2. Haz clic en **Deployments** → último deployment → **⋯ (tres puntos)** → **Redeploy**.
+5. Haz clic en **Deploy**. Vercel compilará la aplicación y la dejará en línea en pocos segundos.
 
 ---
 
-## 3. Sincronización Automática (Cron Job)
+## 5. Automatizar la Sincronización (Cron Job)
 
-La aplicación se sincroniza con la API oficial del Mundial (`worldcup26.ir`) para obtener:
-- 📅 Fechas y horarios de los partidos (actualizados con el calendario oficial)
-- 🏆 Equipos que avanzan (una vez que conocemos los ganadores de grupos)
-- ⚽ Marcadores finales (al terminar cada partido)
-- 🔄 Propagación automática de ganadores al siguiente cruce del bracket
+La aplicación requiere que se consulte de forma periódica la API externa para registrar marcadores reales y propagar llaves del bracket eliminatorio.
 
-### A. Cron Job Nativo de Vercel (1 vez al día)
+### Opción A: cron-job.org (Recomendado — Cada 15 Minutos)
+Dado que el plan gratuito (Hobby) de Vercel solo permite una ejecución de cron diaria, recomendamos utilizar un servicio externo gratuito como `cron-job.org` para lograr sincronizaciones continuas.
 
-Ya está configurado en `vercel.json`:
+1. Registra una cuenta gratuita en [cron-job.org](https://cron-job.org).
+2. Crea un nuevo cron job con los siguientes parámetros:
+   - **Título**: `Sync Matches Mundial 2026`
+   - **URL**: `https://tu-dominio-vercel.app/api/cron/sync-matches` (reemplaza por tu URL de Vercel)
+   - **Método**: `GET`
+   - **Frecuencia**: Cada 15 minutos (`*/15 * * * *`)
+   - **Zona Horaria**: America/Bogota
+3. En la pestaña de **Headers personalizados**, agrega la siguiente cabecera de autenticación:
+   - **Clave**: `Authorization`
+   - **Valor**: `Bearer tu_secreto_cron_definido_en_vercel` (debe coincidir exactamente con la variable de entorno `CRON_SECRET`).
+4. Haz clic en **Crear**. Utiliza la herramienta de **Ejecución de Prueba** de `cron-job.org` para validar que el endpoint responda `200 OK`.
+
+### Opción B: Cron Nativo de Vercel (1 vez al día)
+Si prefieres no utilizar servicios externos, la aplicación ya incluye la directiva en `vercel.json` para ejecutarse diariamente de forma nativa a la medianoche:
+
 ```json
 {
   "crons": [
@@ -121,86 +136,6 @@ Ya está configurado en `vercel.json`:
   ]
 }
 ```
-> En plan gratuito de Vercel, los crons solo se ejecutan una vez al día. Para mayor frecuencia, usa cron-job.org.
 
-### B. cron-job.org (Cada 15 Minutos — Recomendado)
-
-Este servicio gratuito llama al endpoint cada 15 minutos durante el torneo.
-
-**Configuración:**
-
-1. Crea una cuenta gratuita en [cron-job.org](https://cron-job.org).
-2. Crea un nuevo cron job con los siguientes ajustes:
-
-| Campo | Valor |
-|---|---|
-| **URL** | `https://synaptica-mundial-2026.vercel.app/api/cron/sync-matches` |
-| **Método** | `GET` |
-| **Horario** | Cada 15 minutos (`*/15 * * * *`) |
-| **Zona Horaria** | America/Bogota |
-| **Estado** | Activo |
-
-3. En la sección **Headers personalizados**, añade:
-
-| Nombre | Valor |
-|---|---|
-| `Authorization` | `Bearer mi_clave_secreta_cron_2026` |
-
-> ⚠️ El valor del header `Authorization` debe coincidir exactamente con `Bearer ` + el valor de la variable de entorno `CRON_SECRET` en Vercel.
-
-4. Usa la función **"Realizar ejecución de prueba"** para verificar que el endpoint responde `200 OK`.
-
-**Respuesta esperada:**
-```json
-{
-  "success": true,
-  "syncTime": "2026-06-18T15:28:39.950Z",
-  "updatedMatches": 29,
-  "updatedMatchups": 0,
-  "updatedScores": 0,
-  "updatedDates": 29
-}
-```
-
-### Monitoreo de la Sincronización
-
-Desde cron-job.org puedes ver:
-- El historial de ejecuciones (éxito/fallo).
-- El tiempo de respuesta de cada llamada.
-- Los logs de respuesta del servidor.
-
-> ℹ️ El cron es tolerante a fallos: si la API del Mundial no responde, simplemente devuelve `success: true` con 0 actualizaciones. No genera errores críticos.
-
----
-
-## 4. Flujo de Participación
-
-```
-Registro ──► Individual / Dupla ──► Predicciones bonus ──► Predicciones por ronda ──► Leaderboard
-    │              │                  (antes del torneo)       (R32, R16, Cuartos...)      en vivo
-    │              │
-    │         (+ Invitar compañero por email)
-    │
-    └──► Model Card (metodología analítica, opcional)
-```
-
-1. Los colaboradores se **registran** con su correo corporativo.
-2. Eligen modo **Individual** o **Dupla** (invitan a un compañero por email).
-3. Antes del torneo, realizan predicciones **bonus** (campeón y finalistas).
-4. A medida que avanza el torneo, predicen marcadores por ronda.
-5. El **Leaderboard** se actualiza automáticamente vía triggers de BD cuando el admin carga resultados o el cron job los sincroniza.
-
----
-
-## 5. Responsabilidades del Administrador
-
-El admin tiene acceso exclusivo a `/dashboard/admin/*`:
-
-| Sección | Ruta | Función |
-|---|---|---|
-| **Partidos** | `/admin/matches` | Ingresar marcadores reales; el trigger de BD calcula puntos automáticamente |
-| **Equipos** | `/admin/teams` | CRUD manual de equipos en caso de fallo de la API |
-| **Usuarios** | `/admin/users` | Directorio de participantes registrados |
-| **Model Cards** | `/admin/model-cards` | Dashboard analítico de las fichas metodológicas |
-
-> ℹ️ **Nota sobre el cron job**: Con la sincronización automática activa, el admin **no necesita ingresar marcadores manualmente**. El cron los importa directamente desde la API oficial del torneo. El panel de partidos sirve como respaldo manual en caso de problemas con la API.
+> [!IMPORTANT]
+> Los endpoints del cron ignoran el middleware general de redirecciones de autenticación, pero exigen estrictamente el Bearer Token configurado. Si el header `Authorization` no coincide con la variable `CRON_SECRET`, el endpoint responderá `401 Unauthorized` por motivos de seguridad.

@@ -2,6 +2,16 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { hasEnvVars } from "../utils";
 
+/**
+ * Updates the user's session cookie and enforces route-level authentication.
+ * 
+ * Routing Rules:
+ * - Unauthenticated users: Allowed to visit "/", "/icon", metadata images, `/auth/*` (login, signup), and `/api/*` endpoints. Attempts to access any other route redirects to `/auth/login`.
+ * - Authenticated users: Allowed to access all routes. Visiting the landing page "/" redirects them to the `/dashboard`.
+ * 
+ * @param request Next.js request object
+ * @returns Next.js response with updated session cookies and/or redirects
+ */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
