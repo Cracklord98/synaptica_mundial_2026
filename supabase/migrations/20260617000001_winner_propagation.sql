@@ -18,9 +18,11 @@ BEGIN
 
     -- Identificar si este partido es el "primero" o "segundo" en la llave.
     -- Comparamos los IDs: el menor va como team1_id, el mayor como team2_id.
-    SELECT (NEW.id = MIN(id)) INTO v_is_first
+    SELECT (id = NEW.id) INTO v_is_first
     FROM public.matches
-    WHERE next_match_id = v_next_match_id;
+    WHERE next_match_id = v_next_match_id
+    ORDER BY id ASC
+    LIMIT 1;
 
     IF v_is_first THEN
       UPDATE public.matches
@@ -37,9 +39,11 @@ BEGIN
   IF (OLD.is_finished = TRUE AND (NEW.is_finished = FALSE OR NEW.winner_id IS NULL)) AND NEW.next_match_id IS NOT NULL THEN
     v_next_match_id := NEW.next_match_id;
     
-    SELECT (NEW.id = MIN(id)) INTO v_is_first
+    SELECT (id = NEW.id) INTO v_is_first
     FROM public.matches
-    WHERE next_match_id = v_next_match_id;
+    WHERE next_match_id = v_next_match_id
+    ORDER BY id ASC
+    LIMIT 1;
 
     IF v_is_first THEN
       UPDATE public.matches

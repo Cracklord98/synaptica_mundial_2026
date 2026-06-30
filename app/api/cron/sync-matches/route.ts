@@ -13,6 +13,8 @@ interface ExternalGame {
   winner?: string;
   winner_team_name?: string;
   winner_name?: string;
+  home_penalty_score?: string;
+  away_penalty_score?: string;
 }
 
 // Disable local TLS validation only in development mode to bypass Windows handshake errors
@@ -344,10 +346,28 @@ export async function GET(request: Request) {
             winnerId = team2Id;
           } else {
             // Shootout winner matching
-            const apiWinnerName = (apiGame.winner || apiGame.winner_team_name || apiGame.winner_name || "").toLowerCase().trim();
-            if (apiWinnerName) {
-              if (apiWinnerName === t1Name) winnerId = team1Id;
-              else if (apiWinnerName === t2Name) winnerId = team2Id;
+            // 1. Try comparing penalty shootout scores from the API
+            const homePenStr = apiGame.home_penalty_score;
+            const awayPenStr = apiGame.away_penalty_score;
+            if (typeof homePenStr === "string" && typeof awayPenStr === "string") {
+              const homePen = parseInt(homePenStr, 10);
+              const awayPen = parseInt(awayPenStr, 10);
+              if (!isNaN(homePen) && !isNaN(awayPen)) {
+                if (homePen > awayPen) {
+                  winnerId = isHomeTeam1 ? team1Id : team2Id;
+                } else if (awayPen > homePen) {
+                  winnerId = isHomeTeam1 ? team2Id : team1Id;
+                }
+              }
+            }
+
+            // 2. Fallback to matching winner name from the API
+            if (!winnerId) {
+              const apiWinnerName = (apiGame.winner || apiGame.winner_team_name || apiGame.winner_name || "").toLowerCase().trim();
+              if (apiWinnerName) {
+                if (apiWinnerName === t1Name) winnerId = team1Id;
+                else if (apiWinnerName === t2Name) winnerId = team2Id;
+              }
             }
           }
 
